@@ -1,0 +1,2173 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Echo Przodków">
+<link rel="manifest" href="manifest.json">
+<title>Echo Przodków · Kadra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --forest: #1a2f1a;
+  --bark: #3d2b1a;
+  --moss: #4a6741;
+  --leaf: #7ab648;
+  --amber: #d4831a;
+  --ember: #c94f0c;
+  --parchment: #f0e8d0;
+  --cream: #faf5e8;
+  --smoke: #c8c0a8;
+  --ash: #8a8070;
+  --gold: #c8a84b;
+  --bg: #0f1f0f;
+  --panel: #162516;
+  --panel2: #1c2e1c;
+  --border: rgba(200,168,75,0.2);
+  --border-h: rgba(200,168,75,0.45);
+  --glow: rgba(212,131,26,0.15);
+  --shadow: rgba(0,0,0,0.5);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Crimson Pro',Georgia,serif;background:var(--bg);color:var(--parchment);display:flex;flex-direction:column}
+
+/* NOISE */
+body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;height:100%;overflow:hidden}
+.screen.active{display:flex}
+
+/* ── LOADING ── */
+#screen-loading{align-items:center;justify-content:center;gap:16px;background:radial-gradient(ellipse at 50% 40%,#1a3020,#080f08)}
+.load-emblem{font-size:64px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px #d4831a)}50%{transform:scale(1.05);filter:drop-shadow(0 0 40px #d4831a)}}
+.load-title{font-family:'Cinzel',serif;font-size:28px;color:var(--gold);letter-spacing:.1em;text-shadow:0 0 30px rgba(200,168,75,.4)}
+.load-sub{font-size:15px;color:var(--smoke);font-style:italic}
+.load-dots{display:flex;gap:6px;margin-top:8px}
+.load-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:dot 1.4s infinite}
+.load-dot:nth-child(2){animation-delay:.2s}
+.load-dot:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* ── LOGIN ── */
+#screen-login{align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,#1a3020,#080f08);overflow-y:auto}
+.login-wrap{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.login-emblem{font-size:52px;animation:pulse 3s infinite}
+.login-title{font-family:'Cinzel',serif;font-size:clamp(20px,5vw,30px);color:var(--gold);text-align:center;letter-spacing:.08em;text-shadow:0 0 30px rgba(200,168,75,.4)}
+.login-sub{font-size:14px;color:var(--smoke);font-style:italic;margin-bottom:8px;text-align:center}
+.login-box{background:rgba(22,37,22,.95);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:100%;box-shadow:0 8px 48px rgba(0,0,0,.6),inset 0 1px 0 rgba(200,168,75,.1)}
+.fl{display:block;font-size:12px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;margin-top:14px}
+.fl:first-child{margin-top:0}
+.fi{width:100%;padding:11px 14px;background:rgba(10,20,10,.8);border:1px solid rgba(200,168,75,.25);border-radius:10px;color:var(--parchment);font-size:16px;font-family:'Crimson Pro',serif;transition:.2s;appearance:none;-webkit-appearance:none}
+.fi:focus{outline:none;border-color:var(--gold);box-shadow:0 0 12px rgba(200,168,75,.2)}
+.fi option{background:#1a2f1a}
+.btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,var(--amber),#8a4a0a);border:none;border-radius:10px;color:var(--cream);font-family:'Cinzel',serif;font-size:15px;letter-spacing:.08em;cursor:pointer;transition:.2s;box-shadow:0 4px 20px rgba(212,131,26,.3);margin-top:18px}
+.btn-primary:active{transform:scale(.98)}
+.err{color:#f4a060;font-size:14px;margin-top:10px;text-align:center;min-height:20px}
+
+/* ── TOPBAR ── */
+.topbar{background:linear-gradient(90deg,#0a150a,#162516 50%,#0a150a);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;position:relative;z-index:50}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-emblem{font-size:22px}
+.tb-name{font-family:'Cinzel',serif;font-size:13px;color:var(--gold);letter-spacing:.04em;line-height:1.2}
+.tb-role{font-size:11px;color:var(--ash);font-style:italic}
+.tb-right{display:flex;gap:6px;align-items:center}
+.icon-btn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 9px;cursor:pointer;color:var(--smoke);font-size:17px;transition:.2s;position:relative;line-height:1}
+.icon-btn:active{background:rgba(200,168,75,.1)}
+.badge{position:absolute;top:-5px;right:-5px;background:var(--ember);color:#fff;font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700}
+.logout-btn{background:transparent;border:1px solid rgba(201,79,12,.35);border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--ember);font-size:11px;font-family:'Cinzel',serif;letter-spacing:.04em;transition:.2s}
+.logout-btn:active{background:rgba(201,79,12,.15)}
+
+/* ── NAV ── */
+.nav{display:flex;background:#0d1a0d;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.nav::-webkit-scrollbar{display:none}
+.nt{padding:12px 14px;cursor:pointer;white-space:nowrap;font-family:'Cinzel',serif;font-size:11px;letter-spacing:.07em;color:var(--ash);border-bottom:2px solid transparent;transition:.2s;display:flex;align-items:center;gap:5px;user-select:none}
+.nt:active{color:var(--parchment)}
+.nt.active{color:var(--gold);border-bottom-color:var(--gold)}
+.nt .ti{font-size:15px}
+.nt .nb{background:var(--ember);color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;margin-left:2px}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;position:relative}
+.page{display:none;padding:14px;max-width:860px;margin:0 auto;width:100%}
+.page.active{display:block}
+
+/* ── SECTION HEADER ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.st{font-family:'Cinzel',serif;font-size:18px;color:var(--gold);display:flex;align-items:center;gap:8px}
+.btn-sm{padding:7px 13px;background:linear-gradient(135deg,var(--amber),#8a4a0a);border:none;border-radius:8px;color:var(--cream);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.06em;cursor:pointer;transition:.2s;box-shadow:0 2px 12px rgba(212,131,26,.25);white-space:nowrap}
+.btn-sm:active{transform:scale(.97)}
+.btn-sm.ghost{background:transparent;border:1px solid var(--border);color:var(--smoke);box-shadow:none}
+.btn-sm.ghost:active{background:rgba(200,168,75,.08)}
+.btn-sm.danger{background:linear-gradient(135deg,#8a1a0a,#5a1005);box-shadow:none}
+
+/* ── CARDS ── */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;position:relative;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);opacity:.5}
+.card:active{border-color:var(--border-h)}
+.card.accent-ember::before{background:var(--ember)}
+.card.accent-leaf::before{background:var(--leaf)}
+.card.accent-blue::before{background:#7090ff}
+.card-title{font-size:17px;color:var(--parchment);font-weight:600;margin-bottom:3px}
+.card-sub{font-size:13px;color:var(--ash);font-style:italic}
+.card-desc{font-size:14px;color:var(--smoke);margin-top:6px;line-height:1.5}
+
+/* ── TIMELINE ── */
+.tl{position:relative;padding-left:22px}
+.tl::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:1px;background:linear-gradient(to bottom,var(--moss),transparent)}
+.tli{position:relative;margin-bottom:12px}
+.tli-dot{position:absolute;left:-22px;top:6px;width:13px;height:13px;border-radius:50%;background:var(--bark);border:2px solid var(--moss);transition:.2s;z-index:1}
+.tli.now .tli-dot{background:var(--amber);border-color:var(--gold);box-shadow:0 0 8px var(--amber)}
+.tli.done .tli-dot{background:var(--moss);border-color:var(--leaf)}
+.tl-card{background:rgba(22,37,22,.8);border:1px solid var(--border);border-radius:10px;padding:11px 14px;cursor:pointer;transition:.2s;-webkit-user-select:none;user-select:none}
+.tl-card:active{border-color:var(--border-h);background:rgba(28,46,28,.9)}
+.tl-card.done{opacity:.5}
+.tl-time{font-family:'Cinzel',serif;font-size:11px;color:var(--amber);letter-spacing:.05em;margin-bottom:3px}
+.tl-name{font-size:16px;color:var(--parchment);font-weight:600}
+.tl-lead{font-size:13px;color:var(--leaf);margin-top:3px}
+.tl-desc{font-size:13px;color:var(--smoke);font-style:italic;margin-top:3px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;font-family:'Cinzel',serif;letter-spacing:.03em}
+.tag-all{background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:var(--gold)}
+.tag-grp{background:rgba(74,103,65,.3);border:1px solid rgba(122,182,72,.25);color:var(--leaf)}
+.tag-now{background:rgba(212,131,26,.2);border:1px solid rgba(212,131,26,.4);color:#f4a060}
+
+/* ── REMINDERS ── */
+.rem-card{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:9px;position:relative;overflow:hidden;transition:.2s}
+.rem-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber)}
+.rem-card.urgent::before{background:var(--ember)}
+.rem-card.done-r{opacity:.38}
+.rem-icon{font-size:26px;flex-shrink:0;margin-top:2px}
+.rem-body{flex:1;min-width:0}
+.rem-who{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);letter-spacing:.06em;margin-bottom:2px}
+.rem-text{font-size:15px;color:var(--parchment)}
+.rem-time{font-size:12px;color:var(--ash);margin-top:3px;font-style:italic}
+.done-btn{background:transparent;border:1px solid var(--moss);border-radius:6px;padding:5px 9px;cursor:pointer;color:var(--leaf);font-size:11px;font-family:'Cinzel',serif;transition:.2s;white-space:nowrap;flex-shrink:0;align-self:center}
+.done-btn:active{background:rgba(74,103,65,.3)}
+.done-btn.ok{border-color:var(--leaf);background:rgba(74,103,65,.25)}
+
+/* ── PARTICIPANTS ── */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.pc{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:.2s;-webkit-user-select:none;user-select:none}
+.pc:active{border-color:var(--border-h);transform:translateY(-1px)}
+.pc-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--moss),var(--bark));display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:14px;color:var(--gold);margin-bottom:9px;border:1px solid var(--border);flex-shrink:0}
+.pc-name{font-size:15px;color:var(--parchment);font-weight:600}
+.pc-meta{font-size:12px;color:var(--ash);margin-top:2px}
+.ptags{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}
+.ptag{font-size:10px;padding:2px 6px;border-radius:20px;font-family:'Cinzel',serif}
+.ptag-h{background:rgba(201,79,12,.2);border:1px solid rgba(201,79,12,.3);color:#f4a060}
+.ptag-d{background:rgba(74,103,65,.25);border:1px solid rgba(122,182,72,.25);color:var(--leaf)}
+.ptag-s{background:rgba(40,60,160,.3);border:1px solid rgba(100,140,255,.25);color:#a0c0ff}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.sbox{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.snum{font-family:'Cinzel',serif;font-size:26px;color:var(--gold);line-height:1}
+.slbl{font-size:11px;color:var(--ash);margin-top:3px}
+
+/* ── ADMIN ── */
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:20px}
+.acard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+.acard-title{font-family:'Cinzel',serif;font-size:13px;color:var(--gold);letter-spacing:.06em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.urow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(200,168,75,.08)}
+.urow:last-child{border-bottom:none}
+.uav{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--bark),var(--forest));display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold);font-family:'Cinzel',serif;flex-shrink:0;border:1px solid var(--border)}
+.ui{flex:1;min-width:0}
+.un{font-size:13px;color:var(--parchment);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ur{font-size:11px;color:var(--ash);font-style:italic}
+.rsel{background:rgba(10,20,10,.8);border:1px solid var(--border);border-radius:6px;color:var(--parchment);padding:4px 7px;font-size:11px;font-family:'Crimson Pro',serif;cursor:pointer;max-width:100px}
+.rsel:focus{outline:none;border-color:var(--gold)}
+.rsel option{background:#1a2f1a}
+
+/* ── DOCS ── */
+.dcard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:9px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:.2s;position:relative;overflow:hidden}
+.dcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.dcard.cat-regulamin::before{background:#d4831a}
+.dcard.cat-harmonogram::before{background:#7ab648}
+.dcard.cat-instrukcja::before{background:#a0a0ff}
+.dcard.cat-formularz::before{background:#c8a84b}
+.dcard.cat-zdrowie::before{background:#f4a060}
+.dcard.cat-inne::before{background:#8a8070}
+.dcard:active{border-color:var(--border-h)}
+.di{font-size:28px;flex-shrink:0;margin-top:1px}
+.db{flex:1;min-width:0}
+.dn{font-size:16px;color:var(--parchment);font-weight:600}
+.dm{font-size:12px;color:var(--ash);font-style:italic;margin-top:2px}
+.de{font-size:13px;color:var(--smoke);margin-top:5px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cat-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.cf-btn{padding:5px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-family:'Cinzel',serif;letter-spacing:.04em;transition:.2s;border:1px solid var(--border);background:transparent;color:var(--ash)}
+.cf-btn.active{background:rgba(200,168,75,.12);border-color:var(--gold);color:var(--gold)}
+
+/* ── MODALS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .22s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:linear-gradient(180deg,#182818,#0f1f0f);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-width:560px;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.overlay.open .modal{transform:translateY(0)}
+.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.mtitle{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.fg{margin-bottom:13px}
+.fg label{display:block;font-size:11px;color:var(--gold);letter-spacing:.09em;text-transform:uppercase;margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 13px;background:rgba(10,20,10,.8);border:1px solid rgba(200,168,75,.25);border-radius:9px;color:var(--parchment);font-size:15px;font-family:'Crimson Pro',serif;transition:.2s;appearance:none;-webkit-appearance:none}
+.fg textarea{min-height:80px;resize:vertical}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 10px rgba(200,168,75,.15)}
+.fg select option{background:#1a2f1a}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-row{display:flex;gap:8px;margin-top:18px}
+.btn-cancel{flex:1;padding:12px;background:transparent;border:1px solid var(--border);border-radius:9px;color:var(--smoke);font-family:'Cinzel',serif;font-size:12px;cursor:pointer;transition:.2s}
+.btn-cancel:active{background:rgba(200,168,75,.06)}
+.btn-save{flex:2;padding:12px;background:linear-gradient(135deg,var(--amber),#8a4a0a);border:none;border-radius:9px;color:var(--cream);font-family:'Cinzel',serif;font-size:12px;cursor:pointer;transition:.2s;box-shadow:0 3px 14px rgba(212,131,26,.25)}
+.btn-save:active{transform:scale(.98)}
+.btn-save.red{background:linear-gradient(135deg,#8a1a0a,#5a1005)}
+
+/* ── NOTIF PANEL ── */
+.npanel{position:absolute;top:56px;right:8px;background:linear-gradient(180deg,#182818,#0f1f0f);border:1px solid var(--border);border-radius:12px;width:min(340px,calc(100vw - 16px));max-height:380px;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.6);z-index:100;display:none}
+.npanel.open{display:block;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.nh{padding:12px 14px;border-bottom:1px solid var(--border);font-family:'Cinzel',serif;font-size:12px;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
+.nc{font-size:11px;color:var(--ash);cursor:pointer}
+.ni{padding:10px 14px;border-bottom:1px solid rgba(200,168,75,.06);display:flex;gap:9px;align-items:flex-start}
+.ni-icon{font-size:18px;flex-shrink:0}
+.ni-t{font-size:13px;color:var(--parchment)}
+.ni-s{font-size:11px;color:var(--ash);margin-top:1px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 16px;color:var(--ash)}
+.empty-icon{font-size:44px;margin-bottom:10px;opacity:.45}
+.empty-text{font-size:14px;font-style:italic;line-height:1.6}
+
+/* ── SYNC INDICATOR ── */
+.sync-bar{position:fixed;top:56px;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--amber),transparent);z-index:300;display:none;animation:sweep 1.2s infinite}
+@keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.sync-bar.active{display:block}
+
+/* ── ONLINE INDICATOR ── */
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--leaf);display:inline-block;margin-right:4px;flex-shrink:0}
+.online-dot.off{background:var(--ember)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(200,168,75,.25);border-radius:2px}
+
+#day-tabs::-webkit-scrollbar{display:none}
+
+@media(min-width:600px){.page{padding:18px 22px}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="screen active" id="screen-loading">
+  <div class="load-emblem">🏕️</div>
+  <div class="load-title">ECHO PRZODKÓW</div>
+  <div class="load-sub">Łączenie z bazą…</div>
+  <div class="load-dots"><div class="load-dot"></div><div class="load-dot"></div><div class="load-dot"></div></div>
+</div>
+
+<!-- LOGIN -->
+<div class="screen" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-emblem">🌲</div>
+    <div class="login-title">ECHO PRZODKÓW</div>
+    <div class="login-sub">Panel Kadry Obozu · Hufiec ZHP</div>
+    <div class="login-box">
+      <label class="fl">Zaloguj się jako</label>
+      <select class="fi" id="login-user"><option value="">— wybierz —</option></select>
+      <label class="fl">PIN (4 cyfry)</label>
+      <input class="fi" type="password" id="login-pin" maxlength="4" inputmode="numeric" placeholder="••••">
+      <button class="btn-primary" onclick="doLogin()">🔥 Wejdź na obóz</button>
+      <div class="err" id="login-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="screen" id="screen-app">
+  <div class="sync-bar" id="sync-bar"></div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-left">
+      <span class="tb-emblem">🌲</span>
+      <div>
+        <div class="tb-name" id="tb-name">Kadra</div>
+        <div class="tb-role">
+          <span class="online-dot" id="online-dot"></span>
+          <span id="tb-role">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="tb-right">
+      <button class="icon-btn" onclick="toggleNotif()" id="bell-btn">
+        🔔<span class="badge" id="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="logout-btn" onclick="logout()">Wyloguj</button>
+    </div>
+    <!-- NOTIF PANEL -->
+    <div class="npanel" id="npanel">
+      <div class="nh">🔔 Powiadomienia <span class="nc" onclick="clearNotifs()">wyczyść</span></div>
+      <div id="nlist"></div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav" id="nav">
+    <div class="nt active" data-tab="plan" onclick="switchTab('plan')"><span class="ti">📅</span> Plan Dnia</div>
+    <div class="nt" data-tab="rem" onclick="switchTab('rem')"><span class="ti">⏰</span> Przypomnienia<span class="nb" id="rem-nb" style="display:none">0</span></div>
+    <div class="nt" data-tab="uczestnicy" onclick="switchTab('uczestnicy')"><span class="ti">👥</span> Uczestnicy</div>
+    <div class="nt" data-tab="docs" onclick="switchTab('docs')"><span class="ti">📜</span> Dokumenty</div>
+    <div class="nt" data-tab="admin" id="tab-admin" onclick="switchTab('admin')" style="display:none"><span class="ti">⚙️</span> Komendant</div>
+  </div>
+
+  <!-- PAGES -->
+  <div class="content">
+
+    <!-- PLAN DNIA -->
+    <div class="page active" id="page-plan">
+      <!-- DAY SELECTOR -->
+      <div id="day-selector" style="margin-bottom:14px">
+        <!-- kalendarz dni obozu -->
+        <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px" id="day-tabs"></div>
+      </div>
+      <!-- DAY HEADER -->
+      <div id="day-header" style="margin-bottom:14px"></div>
+      <!-- ACTIONS BAR -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="plan-btns"></div>
+      <!-- VIEW TOGGLE (wychowawca) -->
+      <div id="plan-view-toggle" style="display:none;margin-bottom:12px">
+        <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content">
+          <button id="vtbtn-mine" onclick="setPlanView('mine')"
+            style="padding:6px 14px;font-family:'Cinzel',serif;font-size:11px;border:none;cursor:pointer;background:rgba(200,168,75,.15);color:var(--gold)">Mój zastęp</button>
+          <button id="vtbtn-all" onclick="setPlanView('all')"
+            style="padding:6px 14px;font-family:'Cinzel',serif;font-size:11px;border:none;cursor:pointer;background:transparent;color:var(--ash)">Cały obóz</button>
+        </div>
+      </div>
+      <!-- PLAN LIST -->
+      <div id="plan-list">
+        <div class="empty"><div class="empty-icon">🌙</div><div class="empty-text">Wybierz dzień obozu.</div></div>
+      </div>
+    </div>
+
+    <!-- PRZYPOMNIENIA -->
+    <div class="page" id="page-rem">
+      <div class="sh">
+        <div class="st">⏰ Przypomnienia</div>
+        <button class="btn-sm" onclick="openModal('m-rem')">+ Dodaj</button>
+      </div>
+      <div id="rem-list"></div>
+    </div>
+
+    <!-- UCZESTNICY -->
+    <div class="page" id="page-uczestnicy">
+      <div class="sh">
+        <div class="st">👥 Uczestnicy</div>
+        <div style="display:flex;gap:6px" id="part-btns"></div>
+      </div>
+      <div class="stats" id="part-stats"></div>
+      <div id="grp-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div class="pgrid" id="pgrid"></div>
+    </div>
+
+    <!-- DOKUMENTY -->
+    <div class="page" id="page-docs">
+      <div class="sh">
+        <div class="st">📜 Dokumenty</div>
+        <button class="btn-sm" id="add-doc-btn" onclick="openModal('m-adddoc')" style="display:none">+ Dodaj</button>
+      </div>
+      <div class="cat-filter" id="cat-filter"></div>
+      <input class="fi" id="doc-search" placeholder="🔍 Szukaj…" oninput="renderDocs()"
+        style="margin-bottom:14px;padding:9px 13px;font-size:14px">
+      <div id="doc-list"></div>
+    </div>
+
+    <!-- ADMIN (KOMENDANT) -->
+    <div class="page" id="page-admin">
+      <div class="sh"><div class="st">⚙️ Komendant</div></div>
+      <div class="admin-grid" id="admin-grid"></div>
+      <div style="margin-bottom:8px">
+        <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--ash);letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px">📊 Podsumowanie</div>
+        <div class="stats" id="admin-stats"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /screen-app -->
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- MODAL: ADD/EDIT ACTIVITY -->
+<div class="overlay" id="m-plan">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="m-plan-title">📅 Zajęcia</div>
+    <input type="hidden" id="plan-edit-id">
+    <input type="hidden" id="plan-day-id">
+    <div class="fr">
+      <div class="fg"><label>Godzina</label><input type="time" id="plan-time" class="fi"></div>
+      <div class="fg"><label>Typ zajęć</label>
+        <select id="plan-typ" class="fi" onchange="planTypChange()">
+          <option value="stala">🔁 Stały punkt dnia</option>
+          <option value="blok">🎯 Blok zajęciowy</option>
+          <option value="wycieczka-punkt">🗺️ Punkt wycieczki</option>
+          <option value="inne">📌 Inne</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Nazwa aktywności</label><input type="text" id="plan-name" class="fi" placeholder="np. Apel poranny, Leśny Tropiciel…"></div>
+    <div class="fg" id="plan-zastepy-wrap">
+      <label>Zastępy (możesz wybrać kilka)</label>
+      <div id="plan-zastepy-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+      <div style="font-size:11px;color:var(--ash);margin-top:4px">Brak zaznaczenia = cały obóz</div>
+    </div>
+    <div class="fg" id="plan-lead-wrap">
+      <label>Prowadzący (możesz wybrać kilku)</label>
+      <div id="plan-lead-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+    </div>
+    <div class="fg"><label>Lub wpisz prowadzącego ręcznie</label><input type="text" id="plan-lead-manual" class="fi" placeholder="imię / nick…"></div>
+    <div class="fg"><label>Opis / uwagi</label><textarea id="plan-desc" class="fi" placeholder="miejsce, co zabrać…"></textarea></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-plan')">Anuluj</button>
+      <button class="btn-save" onclick="savePlan()">Zapisz 📅</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD DAY -->
+<div class="overlay" id="m-addday">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="m-addday-title">📆 Dzień obozu</div>
+    <input type="hidden" id="day-edit-id">
+    <div class="fr">
+      <div class="fg"><label>Data</label><input type="date" id="day-data" class="fi"></div>
+      <div class="fg"><label>Typ dnia</label>
+        <select id="day-typ" class="fi" onchange="dayTypChange()">
+          <option value="normalny">☀️ Normalny</option>
+          <option value="wycieczka">🗺️ Wycieczka</option>
+          <option value="wolny">🌿 Dzień wolny</option>
+          <option value="przyjazd">🚌 Przyjazd</option>
+          <option value="wyjazd">🚌 Wyjazd</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Nazwa / hasło dnia</label><input type="text" id="day-nazwa" class="fi" placeholder="np. Dzień Swaroga, Wycieczka do Łęczycy…"></div>
+    <div class="fg" id="day-dest-wrap" style="display:none"><label>Cel wycieczki</label><input type="text" id="day-dest" class="fi" placeholder="np. Zamek w Łęczycy"></div>
+    <div class="fg"><label>Uwagi do dnia</label><textarea id="day-uwagi" class="fi" placeholder="Ważne informacje dla kadry…"></textarea></div>
+    <div class="fg" id="day-copy-wrap">
+      <label>Skopiuj plan z dnia (opcjonalnie)</label>
+      <select id="day-copy-from" class="fi"><option value="">— zacznij od zera —</option></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-addday')">Anuluj</button>
+      <button class="btn-save" onclick="saveDay()">Zapisz dzień 📆</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PLAN DETAIL -->
+<div class="overlay" id="m-plan-detail">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div id="plan-detail-content"></div>
+    <div class="btn-row" id="plan-detail-btns">
+      <button class="btn-cancel" onclick="closeModal('m-plan-detail')">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMINDER -->
+<div class="overlay" id="m-rem">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">⏰ Nowe przypomnienie</div>
+    <div class="fg"><label>Dotyczy uczestnika</label>
+      <select id="rem-person" class="fi"><option value="ogólne">— ogólne —</option></select>
+    </div>
+    <div class="fg"><label>Treść</label><input type="text" id="rem-text" class="fi" placeholder="np. Podaj leki, Przynieś wodę…"></div>
+    <div class="fr">
+      <div class="fg"><label>Godzina</label><input type="time" id="rem-time" class="fi"></div>
+      <div class="fg"><label>Priorytet</label>
+        <select id="rem-prio" class="fi">
+          <option value="normal">Zwykłe</option>
+          <option value="urgent">🔴 Pilne</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Ikona</label>
+      <select id="rem-icon" class="fi">
+        <option value="💊">💊 Leki</option>
+        <option value="💧">💧 Woda</option>
+        <option value="🍽️">🍽️ Posiłek</option>
+        <option value="🩺">🩺 Zdrowie</option>
+        <option value="📞">📞 Kontakt</option>
+        <option value="⚠️">⚠️ Uwaga</option>
+        <option value="✅">✅ Zadanie</option>
+        <option value="🌙">🌙 Cisza nocna</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-rem')">Anuluj</button>
+      <button class="btn-save" onclick="saveReminder()">Dodaj ⏰</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTICIPANT ADD/EDIT -->
+<div class="overlay" id="m-part">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="m-part-title">👤 Uczestnik</div>
+    <input type="hidden" id="part-edit-id">
+    <div class="fr">
+      <div class="fg"><label>Imię</label><input type="text" id="part-first" class="fi" placeholder="Imię"></div>
+      <div class="fg"><label>Nazwisko</label><input type="text" id="part-last" class="fi" placeholder="Nazwisko"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Wiek</label><input type="number" id="part-age" class="fi" min="7" max="18" placeholder="12"></div>
+      <div class="fg"><label>Zastęp</label><select id="part-group" class="fi"><option value="">— brak —</option></select></div>
+    </div>
+    <div class="fg"><label>Uwagi zdrowotne / alergie</label><input type="text" id="part-health" class="fi" placeholder="astma, alergia na orzechy…"></div>
+    <div class="fg"><label>Dieta specjalna</label><input type="text" id="part-diet" class="fi" placeholder="wegetariańska, bezglutenowa…"></div>
+    <div class="fg"><label>Pływanie</label>
+      <select id="part-swim" class="fi">
+        <option value="">nie oceniany</option>
+        <option value="nie pływa">nie pływa</option>
+        <option value="pod opieką">pod opieką</option>
+        <option value="samodzielny">samodzielny</option>
+      </select>
+    </div>
+    <div class="fg"><label>Kontakt alarmowy</label><input type="text" id="part-contact" class="fi" placeholder="mama: 600-000-000"></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-part')">Anuluj</button>
+      <button class="btn-save" onclick="savePart()">Zapisz 👤</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTICIPANT DETAIL -->
+<div class="overlay" id="m-part-detail">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div id="part-detail-content"></div>
+    <div class="btn-row" id="part-detail-btns">
+      <button class="btn-cancel" onclick="closeModal('m-part-detail')">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOVE PARTICIPANT -->
+<div class="overlay" id="m-move">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">🔀 Przenieś do zastępu</div>
+    <div id="m-move-name" style="font-size:15px;color:var(--smoke);margin-bottom:14px;font-style:italic"></div>
+    <div class="fg"><label>Nowy zastęp</label><select id="move-group" class="fi"><option value="">— brak grupy —</option></select></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-move')">Anuluj</button>
+      <button class="btn-save" onclick="confirmMove()">Przenieś 🔀</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD USER -->
+<div class="overlay" id="m-adduser">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="m-adduser-title">➕ Osoba z kadry</div>
+    <input type="hidden" id="user-edit-id">
+    <div class="fr">
+      <div class="fg"><label>Imię i nazwisko</label><input type="text" id="nu-name" class="fi" placeholder="Anna Kowalska"></div>
+      <div class="fg"><label>Nick / pseudonim</label><input type="text" id="nu-nick" class="fi" placeholder="Szara Wilczyca"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>PIN (4 cyfry)</label><input type="text" id="nu-pin" class="fi" maxlength="4" inputmode="numeric" placeholder="1234"></div>
+      <div class="fg"><label>Funkcja</label>
+        <select id="nu-role" class="fi">
+          <option value="wychowawca">Wychowawca</option>
+          <option value="komendant">Komendant</option>
+          <option value="obozny">Oboźny</option>
+          <option value="skarbnik">Skarbnik</option>
+          <option value="mlodziez">Kadra młodz.</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Zastęp</label><select id="nu-group" class="fi"><option value="">— brak —</option></select></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-adduser')">Anuluj</button>
+      <button class="btn-save" onclick="saveUser()">Zapisz ➕</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD GROUP -->
+<div class="overlay" id="m-addgroup">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">🏕️ Zastęp</div>
+    <input type="hidden" id="grp-edit-id">
+    <div class="fr">
+      <div class="fg"><label>Nazwa zastępu</label><input type="text" id="grp-name" class="fi" placeholder="Wilki"></div>
+      <div class="fg"><label>Ikona (emoji)</label><input type="text" id="grp-icon" class="fi" placeholder="🐺" maxlength="4"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-addgroup')">Anuluj</button>
+      <button class="btn-save" onclick="saveGroup()">Zapisz 🏕️</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DOCUMENT -->
+<div class="overlay" id="m-adddoc">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">📜 Dokument</div>
+    <input type="hidden" id="doc-edit-id">
+    <div class="fg"><label>Tytuł</label><input type="text" id="doc-title" class="fi" placeholder="Regulamin obozu…"></div>
+    <div class="fr">
+      <div class="fg"><label>Kategoria</label>
+        <select id="doc-cat" class="fi">
+          <option value="regulamin">📋 Regulamin</option>
+          <option value="harmonogram">🗓️ Harmonogram</option>
+          <option value="instrukcja">📖 Instrukcja</option>
+          <option value="formularz">📝 Formularz</option>
+          <option value="zdrowie">🩺 Zdrowie/BHP</option>
+          <option value="inne">📁 Inne</option>
+        </select>
+      </div>
+      <div class="fg"><label>Dostęp</label>
+        <select id="doc-access" class="fi">
+          <option value="all">Cała kadra</option>
+          <option value="komendant">Tylko komendant</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Treść</label><textarea id="doc-body" class="fi" style="min-height:120px" placeholder="Wklej lub wpisz treść…"></textarea></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-adddoc')">Anuluj</button>
+      <button class="btn-save" onclick="saveDoc()">Zapisz 📜</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOCUMENT VIEWER -->
+<div class="overlay" id="m-docview">
+  <div class="modal" style="max-height:92vh">
+    <div class="mhandle"></div>
+    <div id="docview-content"></div>
+    <div class="btn-row" style="margin-top:14px" id="docview-btns">
+      <button class="btn-cancel" onclick="closeModal('m-docview')">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<!-- BROADCAST -->
+<div class="overlay" id="m-broadcast">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">📢 Komunikat do kadry</div>
+    <div class="fg"><label>Treść komunikatu</label><textarea id="bc-text" class="fi" placeholder="Pilna informacja dla całej kadry…"></textarea></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-broadcast')">Anuluj</button>
+      <button class="btn-save" onclick="sendBroadcast()">Wyślij 📢</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE EDIT -->
+<div class="overlay" id="m-profile">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">👤 Mój profil</div>
+    <div class="fg"><label>Nick / pseudonim</label><input type="text" id="prof-nick" class="fi" placeholder="Twój harcerski pseudonim…"></div>
+    <div class="fg"><label>Nowy PIN (zostaw puste = bez zmiany)</label><input type="text" id="prof-pin" class="fi" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-profile')">Anuluj</button>
+      <button class="btn-save" onclick="saveProfile()">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- FIREBASE + APP LOGIC                    -->
+<!-- ════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, push, update, remove, onValue, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getMessaging, getToken, onMessage }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
+
+// ── CONFIG ──
+const firebaseConfig = {
+  apiKey: "AIzaSyBfDiVUVuRidRJZNawpu7bgiAeTYu3DVX8",
+  authDomain: "echo-przodkow.firebaseapp.com",
+  databaseURL: "https://echo-przodkow-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "echo-przodkow",
+  storageBucket: "echo-przodkow.firebasestorage.app",
+  messagingSenderId: "713895306997",
+  appId: "1:713895306997:web:fe65d6f4adc22ebf3487bc"
+};
+const VAPID = "BEjW-VTIyl5O_P0kbRcGHmOEmS1dTe3XkafbigTph5g6uvp6Cjk2lbSJrv6_Q3NEcj8JdVm-wzaSdexZxUo-PFs";
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── PERMISSIONS MATRIX ──
+// canEditPlan: komendant, obozny
+// canEditParts: komendant, wychowawca (own group)
+// canMoveParts: komendant
+// canEditStaff: komendant
+// canEditDocs: komendant
+// canBroadcast: komendant
+// canAddRem: all (mlodziez = only self)
+// seeAll: komendant, obozny
+
+const ROLE_LABELS = {
+  komendant:'Komendant', wychowawca:'Wychowawca',
+  obozny:'Oboźny', skarbnik:'Skarbnik', mlodziez:'Kadra młodz.'
+};
+
+const CAT_META = {
+  regulamin:{icon:'📋',label:'Regulamin',color:'#d4831a'},
+  harmonogram:{icon:'🗓️',label:'Harmonogram',color:'#7ab648'},
+  instrukcja:{icon:'📖',label:'Instrukcja',color:'#a0a0ff'},
+  formularz:{icon:'📝',label:'Formularz',color:'#c8a84b'},
+  zdrowie:{icon:'🩺',label:'Zdrowie/BHP',color:'#f4a060'},
+  inne:{icon:'📁',label:'Inne',color:'#8a8070'}
+};
+
+// ── STATE ──
+let currentUser = null;
+let state = { users:{}, groups:{}, participants:{}, plan:{}, reminders:{}, documents:{}, notifications:{}, dni:{}, aktywnosci:{} };
+let listeners = [];
+let activeDocCat = null;
+let activeGrpFilter = null;
+let movePartId = null;
+let currentDocId = null;
+let remAlerted = new Set();
+
+// ── HELPERS ──
+const $ = id => document.getElementById(id);
+const show = (id,v='block') => $(id).style.display = v;
+const hide = id => $(id).style.display = 'none';
+function showSync(){$('sync-bar').classList.add('active')}
+function hideSync(){$('sync-bar').classList.remove('active')}
+
+function can(action){
+  if(!currentUser) return false;
+  const r = currentUser.role;
+  switch(action){
+    case 'editPlan':   return r==='komendant'||r==='obozny';
+    case 'editParts':  return r==='komendant'||r==='wychowawca';
+    case 'moveParts':  return r==='komendant';
+    case 'editStaff':  return r==='komendant';
+    case 'editDocs':   return r==='komendant';
+    case 'seeAll':     return r==='komendant'||r==='obozny';
+    case 'addRem':     return true;
+    default: return false;
+  }
+}
+
+function myGroup(){return currentUser?.group||null}
+
+function groupName(gid){
+  if(!gid) return '';
+  const g = state.groups[gid];
+  return g ? `${g.icon} ${g.name}` : '';
+}
+
+function partName(pid){
+  if(!pid||pid==='ogólne') return 'Ogólne';
+  const p = state.participants[pid];
+  return p ? `${p.first} ${p.last}` : pid;
+}
+
+function staffName(uid){
+  if(!uid) return '';
+  const u = state.users[uid];
+  if(!u) return uid;
+  return u.nick ? `${u.nick} (${u.name.split(' ')[0]})` : u.name;
+}
+
+function nowMins(){
+  const n=new Date(); return n.getHours()*60+n.getMinutes();
+}
+
+function timeMins(t){
+  if(!t) return 0;
+  const [h,m]=t.split(':').map(Number); return h*60+m;
+}
+
+function fmtNow(){
+  const n=new Date();
+  return n.toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+// ── FIREBASE SEED (first run) ──
+async function seedIfEmpty(){
+  const snap = await get(ref(db,'users'));
+  if(snap.exists()) return;
+  showSync();
+  const seedUsers = {
+    u1:{name:'Wojtek Malesa',nick:'Sokół',pin:'1234',role:'komendant',group:null},
+    u2:{name:'Agnieszka Nowak',nick:'Szara Wilczyca',pin:'2222',role:'wychowawca',group:'g1'},
+    u3:{name:'Bartek Wiśniewski',nick:'Niedźwiedź',pin:'3333',role:'wychowawca',group:'g2'},
+    u4:{name:'Kasia Zielińska',nick:'Jaskółka',pin:'4444',role:'mlodziez',group:'g1'},
+    u5:{name:'Marek Rutkowski',nick:'Tur',pin:'5555',role:'obozny',group:null},
+    u6:{name:'Zofia Dąbrowska',nick:'Zorza',pin:'6666',role:'skarbnik',group:null},
+  };
+  const seedGroups = {
+    g1:{name:'Wilki',icon:'🐺'},
+    g2:{name:'Żbiki',icon:'🐆'},
+    g3:{name:'Orły',icon:'🦅'},
+  };
+  const seedParticipants = {
+    p1:{first:'Marek',last:'Kowalski',age:13,group:'g1',health:'astma',diet:'',swim:'pod opieką',contact:'mama: 600-100-200'},
+    p2:{first:'Zofia',last:'Mazur',age:12,group:'g1',health:'alergia na orzechy',diet:'bezglutenowa',swim:'samodzielny',contact:'tata: 601-200-300'},
+    p3:{first:'Piotr',last:'Lewandowski',age:14,group:'g2',health:'',diet:'',swim:'samodzielny',contact:'mama: 602-300-400'},
+    p4:{first:'Ania',last:'Wróbel',age:11,group:'g2',health:'cukrzyca t.1',diet:'',swim:'nie pływa',contact:'tata: 603-400-500'},
+    p5:{first:'Tomek',last:'Jabłoński',age:13,group:'g3',health:'',diet:'wegetariańska',swim:'samodzielny',contact:'mama: 604-500-600'},
+  };
+  const seedPlan = {
+    pl1:{time:'07:00',name:'Pobudka i gimnastyka poranna',desc:'Zbiórka przy maszcie',for:'all',group:null,lead:null,leadManual:'',done:false,ts:Date.now()},
+    pl2:{time:'08:00',name:'Śniadanie',desc:'Stołówka – grupy wg kolejności',for:'all',group:null,lead:null,leadManual:'',done:false,ts:Date.now()+1},
+    pl3:{time:'09:30',name:'Zdobywanie sprawności – Leśny Tropiciel',desc:'Las za polaną. Zabrać notatniki.',for:'group',group:'g1',lead:'u2',leadManual:'',done:false,ts:Date.now()+2},
+    pl4:{time:'12:30',name:'Obiad',desc:'Stołówka',for:'all',group:null,lead:null,leadManual:'',done:false,ts:Date.now()+3},
+    pl5:{time:'14:00',name:'Czas wolny / kąpiel',desc:'Jeziorko – tylko pływacy samodzielni',for:'all',group:null,lead:'u5',leadManual:'',done:false,ts:Date.now()+4},
+    pl6:{time:'17:00',name:'Warsztaty mitologii słowiańskiej',desc:'Amfiteatr. Prowadzi cała kadra.',for:'all',group:null,lead:null,leadManual:'Cała kadra',done:false,ts:Date.now()+5},
+    pl7:{time:'20:00',name:'Kolacja + ognisko',desc:'Krąg ogniskowy. Każdy z kocem.',for:'all',group:null,lead:null,leadManual:'',done:false,ts:Date.now()+6},
+    pl8:{time:'22:00',name:'Cisza nocna',desc:'Wszyscy w szałasach',for:'all',group:null,lead:null,leadManual:'',done:false,ts:Date.now()+7},
+  };
+  const seedRem = {
+    r1:{person:'p1',text:'Podaj inhalator – Marek ma astmę',time:'08:30',icon:'💊',priority:'urgent',done:false,createdBy:'u1',ts:Date.now()},
+    r2:{person:'p4',text:'Sprawdź poziom cukru przed obiadem',time:'12:00',icon:'🩺',priority:'urgent',done:false,createdBy:'u1',ts:Date.now()+1},
+    r3:{person:'p2',text:'Upewnij się że Zofia nie jadła orzechów',time:'12:30',icon:'💊',priority:'normal',done:false,createdBy:'u1',ts:Date.now()+2},
+    r4:{person:'ogólne',text:'Zebrać podpisane listy obecności',time:'20:00',icon:'✅',priority:'normal',done:false,createdBy:'u1',ts:Date.now()+3},
+  };
+  const seedDocs = {
+    d1:{title:'Regulamin obozu „Echo Przodków"',category:'regulamin',access:'all',body:`REGULAMIN OBOZU LETNIEGO „ECHO PRZODKÓW"\nHufiec ZHP Kutno – Szczep Watra\n\n§1. POSTANOWIENIA OGÓLNE\n1. Uczestnikami obozu mogą być harcerze i zuchy w wieku 10–16 lat.\n2. Obóz odbywa się pod nadzorem wykwalifikowanej kadry.\n\n§2. OBOWIĄZKI UCZESTNIKA\n1. Przestrzegać rozkładu dnia i punktualnie stawiać się na zbiórkach.\n2. Zakaz samowolnego opuszczania terenu obozu.\n3. Dbać o czystość i porządek w szałasie.\n4. Bezwzględny zakaz alkoholu, tytoniu i innych używek.\n5. Cisza nocna 22:00–6:30.\n\n§3. BEZPIECZEŃSTWO\n1. Kąpiel wyłącznie w wyznaczonym miejscu pod opieką wychowawcy.\n2. Zakaz wchodzenia do lasu po zmroku bez wychowawcy.\n3. Urazy zgłaszać natychmiast wychowawcy lub pielęgniarce.\n\n§4. NAGRODY I KONSEKWENCJE\n1. Za rażące naruszenie regulaminu – upomnienie, nagana lub odesłanie do domu.`,added:'2026-06-28',addedBy:'Wojtek Malesa'},
+    d2:{title:'Regulamin kąpieliska',category:'regulamin',access:'all',body:`REGULAMIN KĄPIELISKA OBOZOWEGO\n\n1. Kąpiel dozwolona 14:00–16:00 z obecnością dyżurnego.\n2. OPASKI: Czerwona = nie pływa (do pasa), Żółta = pod opieką (do 1,2m), Zielona = samodzielny.\n3. Zakaz skakania bez zgody ratownika.\n4. Zakaz kąpieli po posiłku (min. 1h przerwy).\n5. Sygnały: 1 gwizd = uwaga, 2 gwizdy = wszyscy wychodzą, 3 gwizdy = akcja ratunkowa.`,added:'2026-06-28',addedBy:'Wojtek Malesa'},
+    d3:{title:'Procedura nagłych przypadków zdrowotnych',category:'zdrowie',access:'all',body:`PROCEDURA NAGŁYCH PRZYPADKÓW\n\nKONTAKTY:\n• Pogotowie: 112 / 999\n• Komendant: [wpisać]\n• Pielęgniarka: [wpisać]\n\nURAZ/WYPADEK:\n1. Zabezpiecz miejsce.\n2. Oceń stan (przytomność, oddech).\n3. Wezwij komendanta i pielęgniarkę.\n4. W razie zagrożenia życia: 112.\n\nATAK ASTMY:\n1. Podaj inhalator.\n2. Posadź w pozycji siedzącej.\n3. Brak poprawy po 10 min → 112.\n\nANAFILAKSJA:\n1. EpiPen jeśli uczestnik go posiada.\n2. Natychmiast 112.\n\nCUKRZYCA T.1:\n• Hipoglikemia: podaj glukozę.\n• Nieprzytomny: 112.`,added:'2026-06-28',addedBy:'Wojtek Malesa'},
+    d4:{title:'Harmonogram programowy – tydzień 1',category:'harmonogram',access:'all',body:`HARMONOGRAM – TYDZIEŃ 1\nMotyw: Mitologia Słowiańska\n\nPONIEDZIAŁEK – Dzień Przylotu\nPrzyjazd, zakwaterowanie, ognisko powitalne.\n\nWTOREK – Czas Swaroga\n09:30 Sprawność: Leśny Tropiciel\n14:00 Kąpiel\n17:00 Warsztaty: Słowiańskie symbole\n20:00 Gra nocna: Ścieżka Swaroga\n\nŚRODA – Czas Velesa\n09:30 Tajemnice ziół\n14:00 Garncarstwo / wikliniarstwo\n17:00 Turniej wiedzy\n20:00 Ognisko z opowieściami\n\nCZWARTEK – Czas Peruna\n09:30 Turniej sportowy\n14:00 Kąpiel\n17:00 Próby na sprawności\n20:00 Spektakl teatralny\n\nPIĄTEK – Dzień Wspólnoty\n10:00 Ceremonia nadania mian słowiańskich\n21:00 Wielkie Ognisko Sobótkowe`,added:'2026-06-29',addedBy:'Wojtek Malesa'},
+    d5:{title:'Instrukcja – codzienna rutyna poranna',category:'instrukcja',access:'all',body:`CODZIENNA RUTYNA PORANNA\n\n6:30 POBUDKA\nOceniasz stan zdrowia zastępu.\nChory → do pielęgniarki PRZED ćwiczeniami.\n\n6:45 GIMNASTYKA\nZbiórka przy maszcie, prowadzi zastęp dyżurny.\n\n7:00 TOALETA I PORZĄDKI\nKontrola czystości szałasu (arkusz).\n\n7:50 ZBIÓRKA PRZED STOŁÓWKĄ\nSprawdzenie stanu osobowego.\n\n8:00 ŚNIADANIE\nUczestnicy z dietą specjalną → właściwy posiłek.\nLeki poranne wg przypomnień w aplikacji.\n\n8:45 APEL PORANNY\nProwadzi komendant lub wyznaczona osoba.\n\n⚠ Nigdy nie zostawiaj zastępu bez opieki.`,added:'2026-06-29',addedBy:'Wojtek Malesa'},
+  };
+
+  const seedDni = {
+    dn1:{data:'2026-08-05',typ:'przyjazd',nazwa:'Dzień Przybycia',dest:'',uwagi:'Przyjazd do godziny 16:00. Zakwaterowanie, orientacja na terenie.',ts:Date.now()},
+    dn2:{data:'2026-08-06',typ:'normalny',nazwa:'Czas Swaroga – Bóg Ognia',dest:'',uwagi:'Pierwszy pełny dzień. Warsztaty tematyczne.',ts:Date.now()},
+    dn3:{data:'2026-08-07',typ:'wycieczka',nazwa:'Wycieczka do Łęczycy',dest:'Zamek Królewski w Łęczycy',uwagi:'Wyjazd autokarem. Zabrać lunch i wodę.',ts:Date.now()},
+  };
+  const seedAkt = {
+    a1:{data:'2026-08-05',czas:'16:00',nazwa:'Przyjazd i zakwaterowanie',typ:'stala',zastepy:[],prowadzacy:['u1'],prowadzacyManual:'',opis:'Wszystkie grupy',done:false,ts:1},
+    a2:{data:'2026-08-05',czas:'20:00',nazwa:'Kolacja i ognisko powitalne',typ:'stala',zastepy:[],prowadzacy:['u1','u5'],prowadzacyManual:'',opis:'Krąg ogniskowy – legenda o powstaniu obozu',done:false,ts:2},
+    a3:{data:'2026-08-05',czas:'22:00',nazwa:'Cisza nocna',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'',done:false,ts:3},
+    a4:{data:'2026-08-06',czas:'07:00',nazwa:'Pobudka i gimnastyka poranna',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'zastęp dyżurny',opis:'Zbiórka przy maszcie',done:false,ts:4},
+    a5:{data:'2026-08-06',czas:'08:00',nazwa:'Śniadanie',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'Stołówka – grupy wg kolejności',done:false,ts:5},
+    a6:{data:'2026-08-06',czas:'09:30',nazwa:'Leśny Tropiciel – orientacja w terenie',typ:'blok',zastepy:['g1','g2'],prowadzacy:['u2','u3'],prowadzacyManual:'',opis:'Las za polaną. Zabrać notatniki i kompas.',done:false,ts:6},
+    a7:{data:'2026-08-06',czas:'09:30',nazwa:'Warsztaty garncarskie',typ:'blok',zastepy:['g3'],prowadzacy:['u4'],prowadzacyManual:'',opis:'Przy stołówce – glina jest przygotowana',done:false,ts:7},
+    a8:{data:'2026-08-06',czas:'12:30',nazwa:'Obiad',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'',done:false,ts:8},
+    a9:{data:'2026-08-06',czas:'14:00',nazwa:'Kąpiel i czas wolny',typ:'stala',zastepy:[],prowadzacy:['u5'],prowadzacyManual:'',opis:'Jeziorko – tylko pływacy samodzielni bez opaski',done:false,ts:9},
+    a10:{data:'2026-08-06',czas:'17:00',nazwa:'Warsztaty mitologii słowiańskiej',typ:'blok',zastepy:[],prowadzacy:['u1','u2','u3'],prowadzacyManual:'',opis:'Amfiteatr – cała kadra prowadzi stacje',done:false,ts:10},
+    a11:{data:'2026-08-06',czas:'20:00',nazwa:'Kolacja',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'',done:false,ts:11},
+    a12:{data:'2026-08-06',czas:'21:00',nazwa:'Ognisko wieczorne',typ:'stala',zastepy:[],prowadzacy:['u2'],prowadzacyManual:'',opis:'Pieśni i opowieści',done:false,ts:12},
+    a13:{data:'2026-08-06',czas:'22:00',nazwa:'Cisza nocna',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'',done:false,ts:13},
+    a14:{data:'2026-08-07',czas:'06:30',nazwa:'Pobudka',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'Wczesna pobudka z uwagi na wyjazd',done:false,ts:14},
+    a15:{data:'2026-08-07',czas:'07:00',nazwa:'Śniadanie i przygotowanie do wyjazdu',typ:'wycieczka-punkt',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'Spakować lunch, wodę, dokumenty uczestnika',done:false,ts:15},
+    a16:{data:'2026-08-07',czas:'08:00',nazwa:'Wyjazd autokarem',typ:'wycieczka-punkt',zastepy:[],prowadzacy:['u1','u5'],prowadzacyManual:'',opis:'Zbiórka przy bramie obozu punktualnie o 7:55',done:false,ts:16},
+    a17:{data:'2026-08-07',czas:'10:00',nazwa:'Zwiedzanie Zamku Królewskiego',typ:'wycieczka-punkt',zastepy:[],prowadzacy:['u1'],prowadzacyManual:'przewodnik muzealny',opis:'',done:false,ts:17},
+    a18:{data:'2026-08-07',czas:'13:00',nazwa:'Obiad w terenie',typ:'wycieczka-punkt',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'Lunch z plecaków',done:false,ts:18},
+    a19:{data:'2026-08-07',czas:'15:00',nazwa:'Czas wolny w mieście',typ:'wycieczka-punkt',zastepy:[],prowadzacy:['u2','u3','u4'],prowadzacyManual:'',opis:'Grupy po 5-6 osób z wychowawcą. Zbiórka o 16:30.',done:false,ts:19},
+    a20:{data:'2026-08-07',czas:'17:00',nazwa:'Powrót autokarem',typ:'wycieczka-punkt',zastepy:[],prowadzacy:['u1','u5'],prowadzacyManual:'',opis:'',done:false,ts:20},
+    a21:{data:'2026-08-07',czas:'19:00',nazwa:'Kolacja i cisza nocna',typ:'stala',zastepy:[],prowadzacy:[],prowadzacyManual:'',opis:'Wcześniejsza cisza – 21:30 z uwagi na zmęczenie',done:false,ts:21},
+  };
+  await set(ref(db,'users'), seedUsers);
+  await set(ref(db,'dni'), seedDni);
+  await set(ref(db,'aktywnosci'), seedAkt);
+  await set(ref(db,'groups'), seedGroups);
+  await set(ref(db,'participants'), seedParticipants);
+  await set(ref(db,'plan'), seedPlan);
+  await set(ref(db,'reminders'), seedRem);
+  await set(ref(db,'documents'), seedDocs);
+  hideSync();
+}
+
+// ── REALTIME LISTENERS ──
+function attachListeners(){
+  const paths = ['users','groups','participants','plan','reminders','documents','notifications','dni','aktywnosci'];
+  paths.forEach(path => {
+    const unsub = onValue(ref(db, path), snap => {
+      state[path] = snap.val() || {};
+      onStateChange(path);
+    });
+    listeners.push(unsub);
+  });
+}
+
+function detachListeners(){
+  listeners.forEach(u => u());
+  listeners = [];
+}
+
+function onStateChange(path){
+  hideSync();
+  const active = document.querySelector('.page.active');
+  const tab = active?.id?.replace('page-','');
+  if(path==='plan'&&tab==='plan') renderPlan();
+  if(path==='dni'&&tab==='plan') renderPlan();
+  if(path==='aktywnosci'&&tab==='plan') renderPlan();
+  if(path==='reminders' && (tab==='rem'||tab==='plan')) { renderRem(); updateBadges(); }
+  if(path==='participants' && tab==='uczestnicy') renderParts();
+  if(path==='documents' && tab==='docs') renderDocs();
+  if(path==='notifications'){ renderNotifList(); updateBadges(); checkReminderAlerts(); }
+  if(path==='users') populateSelects();
+  if(path==='groups') populateSelects();
+}
+
+// ── ONLINE STATUS ──
+function watchOnline(){
+  window.addEventListener('online', () => { $('online-dot').classList.remove('off'); });
+  window.addEventListener('offline', () => { $('online-dot').classList.add('off'); });
+  if(!navigator.onLine) $('online-dot').classList.add('off');
+}
+
+// ── AUTH ──
+async function initLogin(){
+  await seedIfEmpty();
+  const snap = await get(ref(db,'users'));
+  const users = snap.val()||{};
+  const sel = $('login-user');
+  sel.innerHTML = '<option value="">— wybierz osobę —</option>';
+  Object.entries(users).forEach(([id,u]) => {
+    const nick = u.nick ? ` „${u.nick}"` : '';
+    sel.innerHTML += `<option value="${id}">${u.name}${nick} · ${ROLE_LABELS[u.role]||u.role}</option>`;
+  });
+  showScreen('login');
+}
+
+window.doLogin = async function(){
+  const uid = $('login-user').value;
+  const pin = $('login-pin').value;
+  if(!uid){ $('login-err').textContent='Wybierz osobę z listy.'; return; }
+  const snap = await get(ref(db,`users/${uid}`));
+  const user = snap.val();
+  if(!user||user.pin!==pin){ $('login-err').textContent='Nieprawidłowy PIN.'; return; }
+  currentUser = {...user, id:uid};
+  $('login-err').textContent='';
+  $('login-pin').value='';
+  attachListeners();
+  watchOnline();
+  initApp();
+  showScreen('app');
+  requestPush();
+}
+
+window.logout = function(){
+  detachListeners();
+  currentUser=null; state={users:{},groups:{},participants:{},plan:{},reminders:{},documents:{},notifications:{}};
+  showScreen('loading');
+  setTimeout(initLogin, 300);
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(`screen-${id}`).classList.add('active');
+}
+
+// ── APP INIT ──
+function initApp(){
+  const u = currentUser;
+  const nick = u.nick ? `„${u.nick}"` : u.name.split(' ')[0];
+  $('tb-name').textContent = u.name;
+  const grpN = u.group ? (state.groups[u.group]?.icon+' '+state.groups[u.group]?.name)||'' : '';
+  $('tb-role').textContent = `${ROLE_LABELS[u.role]||u.role}${grpN?' · '+grpN:''}`;
+
+  // tabs visibility
+  if(u.role==='komendant') show('tab-admin','flex');
+  else hide('tab-admin');
+
+  // part btns
+  const partb = $('part-btns');
+  partb.innerHTML = '';
+  if(can('editParts'))
+    partb.innerHTML += `<button class="btn-sm" onclick="openAddPart()">+ Dodaj</button>`;
+  if(can('moveParts'))
+    partb.innerHTML += `<button class="btn-sm ghost" onclick="toggleMoveMode()">🔀 Przenoś</button>`;
+
+  // docs btn
+  if(can('editDocs')) show('add-doc-btn');
+  else hide('add-doc-btn');
+
+  // plan btns rendered inside renderPlan()
+  populateSelects();
+  renderPlan(); renderRem(); renderParts(); renderDocs();
+  if(u.role==='komendant') renderAdmin();
+  updateBadges();
+  setInterval(checkReminderAlerts, 30000);
+  checkReminderAlerts();
+}
+
+// ── POPULATE SELECTS ──
+function populateSelects(){
+  const groups = Object.entries(state.groups||{});
+  const users  = Object.entries(state.users||{});
+  const parts  = Object.entries(state.participants||{});
+
+  // group selects
+  ['plan-group','part-group','nu-group','move-group'].forEach(id=>{
+    const el=$(id); if(!el) return;
+    const v=el.value;
+    el.innerHTML='<option value="">— brak —</option>';
+    groups.forEach(([gid,g])=>el.innerHTML+=`<option value="${gid}">${g.icon} ${g.name}</option>`);
+    el.value=v;
+  });
+
+  // lead select
+  const ls=$('plan-lead'); if(ls){
+    const v=ls.value;
+    ls.innerHTML='<option value="">— brak / wpisz ręcznie —</option>';
+    users.forEach(([uid,u])=>{
+      const nick=u.nick?` „${u.nick}"`:'';
+      ls.innerHTML+=`<option value="${uid}">${u.name}${nick}</option>`;
+    });
+    ls.value=v;
+  }
+
+  // reminder person
+  const rp=$('rem-person'); if(rp){
+    const v=rp.value;
+    rp.innerHTML='<option value="ogólne">— ogólne —</option>';
+    // filter parts by role
+    parts.forEach(([pid,p])=>{
+      if(!can('seeAll') && p.group!==myGroup()) return;
+      rp.innerHTML+=`<option value="${pid}">${p.first} ${p.last}</option>`;
+    });
+    rp.value=v;
+  }
+}
+
+// ── TABS ──
+window.switchTab = function(id){
+  document.querySelectorAll('.nt').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${id}`));
+  if(id==='plan') renderPlan();
+  if(id==='rem') renderRem();
+  if(id==='uczestnicy') renderParts();
+  if(id==='docs') renderDocs();
+  if(id==='admin') renderAdmin();
+}
+
+// ── PLAN DNIA – MULTI-DAY ──
+const CAMP_START = new Date('2026-08-05');
+const CAMP_END   = new Date('2026-08-14');
+const DAY_TYPS = {
+  normalny:   {icon:'☀️', label:'Normalny'},
+  wycieczka:  {icon:'🗺️', label:'Wycieczka'},
+  wolny:      {icon:'🌿', label:'Wolny'},
+  przyjazd:   {icon:'🚌', label:'Przyjazd'},
+  wyjazd:     {icon:'🚌', label:'Wyjazd'},
+};
+const ACT_TYPS = {
+  stala:          {icon:'🔁', label:'Stały punkt'},
+  blok:           {icon:'🎯', label:'Blok zajęciowy'},
+  'wycieczka-punkt': {icon:'🗺️', label:'Punkt wycieczki'},
+  inne:           {icon:'📌', label:'Inne'},
+};
+
+let currentDayId = null;
+let planView = 'mine'; // 'mine' | 'all'
+
+function campDays(){
+  const days=[];
+  const d=new Date(CAMP_START);
+  while(d<=CAMP_END){ days.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return days;
+}
+
+function fmtDate(iso){
+  const d=new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+}
+function fmtDateLong(iso){
+  const d=new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function dayNumber(iso){
+  const s=new Date(CAMP_START); const t=new Date(iso+'T12:00:00');
+  return Math.round((t-s)/(1000*60*60*24))+1;
+}
+
+function renderDayTabs(){
+  const cont=$('day-tabs');
+  if(!cont) return;
+  const days=campDays();
+  // find today or default to first day
+  const todayIso=new Date().toISOString().slice(0,10);
+  if(!currentDayId){
+    // pick today if in camp, else first day
+    const inCamp=days.includes(todayIso);
+    currentDayId = inCamp ? findDayIdByDate(todayIso)||days[0] : days[0];
+  }
+  cont.innerHTML='';
+  days.forEach(iso=>{
+    const dayEntry=findDayByDate(iso);
+    const typ=dayEntry?.typ||'normalny';
+    const meta=DAY_TYPS[typ]||DAY_TYPS.normalny;
+    const num=dayNumber(iso);
+    const isCurrent=currentDayId===iso||(dayEntry&&currentDayId===Object.keys(state.dni||{}).find(k=>state.dni[k].data===iso));
+    const btn=document.createElement('button');
+    btn.style.cssText=`flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid ${isCurrent?'var(--gold)':'var(--border)'};background:${isCurrent?'rgba(200,168,75,.15)':'transparent'};cursor:pointer;font-family:'Cinzel',serif;font-size:10px;color:${isCurrent?'var(--gold)':'var(--ash)'};text-align:center;min-width:56px;transition:.2s`;
+    const d=new Date(iso+'T12:00:00');
+    btn.innerHTML=`<div style="font-size:16px">${meta.icon}</div><div>D${num}</div><div style="font-size:9px">${d.toLocaleDateString('pl-PL',{day:'numeric',month:'numeric'})}</div>`;
+    btn.onclick=()=>selectDay(iso);
+    cont.appendChild(btn);
+  });
+}
+
+function findDayByDate(iso){
+  return Object.values(state.dni||{}).find(d=>d.data===iso);
+}
+function findDayIdByDate(iso){
+  return Object.keys(state.dni||{}).find(k=>(state.dni[k].data===iso));
+}
+
+function selectDay(iso){
+  // currentDayId stores the iso date string for simplicity in selection
+  currentDayId=iso;
+  renderDayTabs();
+  renderDayHeader();
+  renderPlan();
+}
+
+function renderDayHeader(){
+  const cont=$('day-header'); if(!cont) return;
+  const iso=currentDayId;
+  if(!iso){cont.innerHTML='';return;}
+  const dayEntry=findDayByDate(iso);
+  const typ=dayEntry?.typ||'normalny';
+  const meta=DAY_TYPS[typ]||DAY_TYPS.normalny;
+  const num=dayNumber(iso);
+  const nazwa=dayEntry?.nazwa||'';
+  const uwagi=dayEntry?.uwagi||'';
+  const dest=dayEntry?.dest||'';
+  cont.innerHTML=`
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);opacity:.6"></div>
+      <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+        <div>
+          <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);letter-spacing:.05em">
+            ${meta.icon} Dzień ${num} · ${meta.label}
+          </div>
+          <div style="font-size:16px;color:var(--parchment);font-weight:600;margin-top:2px">${nazwa||fmtDateLong(iso)}</div>
+          <div style="font-size:12px;color:var(--ash);margin-top:2px">${fmtDateLong(iso)}</div>
+          ${dest?`<div style="font-size:13px;color:var(--leaf);margin-top:3px">📍 ${dest}</div>`:''}
+          ${uwagi?`<div style="font-size:13px;color:var(--smoke);font-style:italic;margin-top:4px">${uwagi}</div>`:''}
+        </div>
+        ${can('editPlan')?`<button class="btn-sm ghost" style="flex-shrink:0" onclick="openEditDay('${iso}')">✏️</button>`:''}
+      </div>
+    </div>`;
+}
+
+function setPlanView(v){
+  planView=v;
+  $('vtbtn-mine').style.background=v==='mine'?'rgba(200,168,75,.15)':'transparent';
+  $('vtbtn-mine').style.color=v==='mine'?'var(--gold)':'var(--ash)';
+  $('vtbtn-all').style.background=v==='all'?'rgba(200,168,75,.15)':'transparent';
+  $('vtbtn-all').style.color=v==='all'?'var(--gold)':'var(--ash)';
+  renderPlan();
+}
+
+function renderPlan(){
+  renderDayTabs();
+  renderDayHeader();
+
+  const iso=currentDayId;
+  const cont=$('plan-list');
+
+  // plan-btns
+  const pb=$('plan-btns'); pb.innerHTML='';
+  if(can('editPlan')){
+    if(!findDayByDate(iso||'')){
+      pb.innerHTML=`<button class="btn-sm" onclick="openAddDay()">+ Dodaj dzień obozu</button>`;
+    } else {
+      pb.innerHTML=`<button class="btn-sm" onclick="openAddActivity()">+ Zajęcia</button>
+        <button class="btn-sm ghost" onclick="openAddDay()">+ Nowy dzień</button>
+        <button class="btn-sm ghost" onclick="openCopyDay()">📋 Kopiuj dzień</button>`;
+    }
+  }
+
+  // view toggle
+  const vt=$('plan-view-toggle');
+  if(!can('seeAll') && currentUser.role!=='skarbnik'){
+    vt.style.display='block';
+  } else { vt.style.display='none'; }
+
+  if(!iso){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Wybierz dzień z kalendarza powyżej.</div></div>';
+    return;
+  }
+
+  // get activities for this day
+  let acts=Object.entries(state.aktywnosci||{})
+    .filter(([,a])=>a.data===iso);
+
+  // filter by view
+  if(!can('seeAll') && planView==='mine' && myGroup()){
+    // show: all-camp items + items that include myGroup
+    acts=acts.filter(([,a])=>{
+      const zastepy=a.zastepy||[];
+      return zastepy.length===0 || zastepy.includes(myGroup());
+    });
+  }
+
+  acts.sort((a,b)=>a[1].czas?.localeCompare(b[1].czas));
+
+  if(!acts.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">🌙</div><div class="empty-text">Brak zajęć w tym dniu.<br>'+(can('editPlan')?'Dodaj zajęcia przyciskiem powyżej.':'')+'</div></div>';
+    return;
+  }
+
+  const cur=nowMins();
+  const todayIso=new Date().toISOString().slice(0,10);
+  const isToday=iso===todayIso;
+
+  // group by time slot (parallel activities = same czas)
+  const slots={};
+  acts.forEach(([id,a])=>{
+    const key=a.czas||'00:00';
+    if(!slots[key]) slots[key]=[];
+    slots[key].push([id,a]);
+  });
+
+  cont.innerHTML='';
+  const tl=document.createElement('div'); tl.className='tl';
+  cont.appendChild(tl);
+
+  Object.entries(slots).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([czas,items])=>{
+    const pm=timeMins(czas);
+    const diff=pm-cur;
+    const isNow=isToday&&diff>=0&&diff<=30;
+    const isDoneAll=items.every(([,a])=>a.done);
+
+    if(items.length===1){
+      // single activity
+      const [aid,a]=items[0];
+      renderSingleActivity(tl,aid,a,isNow,isDoneAll,isToday);
+    } else {
+      // PARALLEL BLOCK
+      const blockDiv=document.createElement('div');
+      blockDiv.className=`tli${isNow?' now':''}`;
+      const myItems=items.filter(([,a])=>{
+        const z=a.zastepy||[];
+        return z.length===0||z.includes(myGroup());
+      });
+      const isMineInBlock=myItems.length>0;
+
+      blockDiv.innerHTML=`<div class="tli-dot${isNow?' ':' '}"></div>
+        <div style="flex:1">
+          <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--amber);letter-spacing:.05em;margin-bottom:6px">
+            ${czas}${isNow?' — TERAZ ▶':''} · <span style="color:var(--ash)">BLOK RÓWNOLEGŁY (${items.length} grupy)</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px" id="block-${czas.replace(':','')}">
+          </div>
+        </div>`;
+      tl.appendChild(blockDiv);
+
+      const blockCont=blockDiv.querySelector(`#block-${czas.replace(':','')}`);
+      items.forEach(([aid,a])=>{
+        const zastepy=a.zastepy||[];
+        const isMine=zastepy.length===0||zastepy.includes(myGroup());
+        const leadNames=buildLeadNames(a);
+        const zNames=zastepy.map(z=>state.groups[z]?`${state.groups[z].icon} ${state.groups[z].name}`:'').join(', ')||'Cały obóz';
+        const actDiv=document.createElement('div');
+        actDiv.style.cssText=`background:${isMine?'rgba(28,46,28,.9)':'rgba(18,30,18,.5)'};border:1px solid ${isMine?'var(--border-h)':'var(--border)'};border-radius:9px;padding:10px 13px;cursor:pointer;opacity:${a.done?'0.45':'1'};transition:.2s`;
+        actDiv.innerHTML=`
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <div style="flex:1">
+              <div style="font-size:15px;color:${isMine?'var(--parchment)':'var(--smoke)'};font-weight:${isMine?'600':'400'}">${a.done?'✓ ':''}${a.nazwa}${isMine?'':''}</div>
+              <div style="font-size:12px;color:var(--leaf);margin-top:2px">${zNames}</div>
+              ${leadNames?`<div style="font-size:12px;color:var(--ash);margin-top:2px">👤 ${leadNames}</div>`:''}
+            </div>
+            ${isMine?`<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(200,168,75,.15);border:1px solid var(--border);color:var(--gold);font-family:'Cinzel',serif;white-space:nowrap">Mój zastęp</span>`:''}
+          </div>`;
+        actDiv.onclick=()=>openActDetail(aid);
+        blockCont.appendChild(actDiv);
+      });
+    }
+  });
+}
+
+function renderSingleActivity(cont,aid,a,isNow,isDone,isToday){
+  const zastepy=a.zastepy||[];
+  const isAll=zastepy.length===0;
+  const isMine=isAll||zastepy.includes(myGroup());
+  const leadNames=buildLeadNames(a);
+  const zNames=zastepy.map(z=>state.groups[z]?`${state.groups[z].icon} ${state.groups[z].name}`:'').join(', ')||'Cały obóz';
+  const typ=ACT_TYPS[a.typ]||ACT_TYPS.inne;
+
+  const div=document.createElement('div');
+  div.className=`tli${isNow?' now':''}${isDone?' done':''}`;
+  div.innerHTML=`<div class="tli-dot"></div>
+    <div class="tl-card${isDone?' done':''}" style="opacity:${!isMine&&!can('seeAll')?'.5':'1'}" onclick="openActDetail('${aid}')">
+      <div class="tl-time">${a.czas||''}${isNow?' — TERAZ ▶':''} <span style="color:var(--ash);font-size:10px">${typ.icon} ${typ.label}</span></div>
+      <div class="tl-name">${isDone?'✓ ':''}${a.nazwa}</div>
+      ${leadNames?`<div class="tl-lead">👤 ${leadNames}</div>`:''}
+      ${a.opis?`<div class="tl-desc">${a.opis}</div>`:''}
+      <div class="tags">
+        ${isAll?'<span class="tag tag-all">Cały obóz</span>':''}
+        ${!isAll?`<span class="tag tag-grp">${zNames}</span>`:''}
+        ${isNow?'<span class="tag tag-now">🔔 Czas zacząć!</span>':''}
+      </div>
+    </div>`;
+  cont.appendChild(div);
+}
+
+function buildLeadNames(a){
+  const leads=a.prowadzacy||[];
+  const names=leads.map(uid=>staffName(uid)).filter(Boolean);
+  if(a.prowadzacyManual) names.push(a.prowadzacyManual);
+  return names.join(', ');
+}
+
+window.openActDetail=function(aid){
+  const a=state.aktywnosci[aid]; if(!a) return;
+  const zastepy=a.zastepy||[];
+  const zNames=zastepy.map(z=>state.groups[z]?`${state.groups[z].icon} ${state.groups[z].name}`:'').join(', ')||'Cały obóz';
+  const leadNames=buildLeadNames(a);
+  const typ=ACT_TYPS[a.typ]||ACT_TYPS.inne;
+  $('plan-detail-content').innerHTML=`
+    <div class="mtitle">${typ.icon} ${a.czas} · ${a.nazwa}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      <div style="display:flex;gap:8px">
+        <span style="font-size:12px;color:var(--ash);width:80px;flex-shrink:0">Zastępy:</span>
+        <span style="font-size:14px;color:var(--parchment)">${zNames}</span>
+      </div>
+      ${leadNames?`<div style="display:flex;gap:8px">
+        <span style="font-size:12px;color:var(--ash);width:80px;flex-shrink:0">Prowadzący:</span>
+        <span style="font-size:14px;color:var(--leaf)">${leadNames}</span>
+      </div>`:''}
+      ${a.opis?`<div style="display:flex;gap:8px">
+        <span style="font-size:12px;color:var(--ash);width:80px;flex-shrink:0">Opis:</span>
+        <span style="font-size:14px;color:var(--smoke);font-style:italic">${a.opis}</span>
+      </div>`:''}
+    </div>
+    <button class="btn-sm ${a.done?'ghost':''}" style="width:100%" onclick="toggleActDone('${aid}')">${a.done?'↩ Oznacz jako niewykonane':'✓ Oznacz jako wykonane'}</button>`;
+  const btns=$('plan-detail-btns');
+  btns.innerHTML=`<button class="btn-cancel" onclick="closeModal('m-plan-detail')">Zamknij</button>`;
+  if(can('editPlan')){
+    btns.innerHTML+=`<button class="btn-save" onclick="closeModal('m-plan-detail');openEditActivity('${aid}')">✏️ Edytuj</button>`;
+    btns.innerHTML+=`<button class="btn-save red" onclick="deleteActivity('${aid}')">🗑️</button>`;
+  }
+  openModal('m-plan-detail');
+}
+
+window.toggleActDone=async function(aid){
+  const a=state.aktywnosci[aid]; if(!a) return;
+  showSync();
+  await update(ref(db,`aktywnosci/${aid}`),{done:!a.done});
+  closeModal('m-plan-detail');
+}
+
+window.deleteActivity=async function(aid){
+  if(!confirm('Usunąć tę aktywność?')) return;
+  showSync();
+  await remove(ref(db,`aktywnosci/${aid}`));
+  closeModal('m-plan-detail');
+}
+
+// ADD / EDIT ACTIVITY
+window.openAddActivity=function(editId=null){
+  $('plan-edit-id').value=editId||'';
+  $('plan-day-id').value=currentDayId||'';
+  $('m-plan-title').textContent=editId?'✏️ Edytuj zajęcia':'📅 Nowe zajęcia';
+  if(editId){
+    const a=state.aktywnosci[editId];
+    $('plan-time').value=a.czas||'';
+    $('plan-typ').value=a.typ||'blok';
+    $('plan-name').value=a.nazwa||'';
+    $('plan-lead-manual').value=a.prowadzacyManual||'';
+    $('plan-desc').value=a.opis||'';
+    buildZastepyCheckboxes(a.zastepy||[]);
+    buildLeadCheckboxes(a.prowadzacy||[]);
+  } else {
+    const n=new Date();
+    $('plan-time').value=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+    $('plan-typ').value='blok';
+    $('plan-name').value='';
+    $('plan-lead-manual').value='';
+    $('plan-desc').value='';
+    buildZastepyCheckboxes([]);
+    buildLeadCheckboxes([]);
+  }
+  planTypChange();
+  openModal('m-plan');
+}
+
+window.openEditActivity=function(id){openAddActivity(id)}
+
+function buildZastepyCheckboxes(selected){
+  const cont=$('plan-zastepy-list'); cont.innerHTML='';
+  Object.entries(state.groups||{}).forEach(([gid,g])=>{
+    const chk=document.createElement('label');
+    chk.style.cssText='display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-family:"Cinzel",serif;color:var(--smoke);background:transparent;transition:.2s';
+    chk.innerHTML=`<input type="checkbox" value="${gid}" ${selected.includes(gid)?'checked':''} style="accent-color:var(--amber)"> ${g.icon} ${g.name}`;
+    chk.querySelector('input').onchange=e=>{
+      chk.style.background=e.target.checked?'rgba(200,168,75,.12)':'transparent';
+      chk.style.color=e.target.checked?'var(--gold)':'var(--smoke)';
+      chk.style.borderColor=e.target.checked?'var(--gold)':'var(--border)';
+    };
+    if(selected.includes(gid)){
+      chk.style.background='rgba(200,168,75,.12)'; chk.style.color='var(--gold)'; chk.style.borderColor='var(--gold)';
+    }
+    cont.appendChild(chk);
+  });
+}
+
+function buildLeadCheckboxes(selected){
+  const cont=$('plan-lead-list'); cont.innerHTML='';
+  Object.entries(state.users||{}).forEach(([uid,u])=>{
+    const nick=u.nick?` „${u.nick}"`:'';
+    const chk=document.createElement('label');
+    chk.style.cssText='display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-family:"Cinzel",serif;color:var(--smoke);background:transparent;transition:.2s';
+    chk.innerHTML=`<input type="checkbox" value="${uid}" ${selected.includes(uid)?'checked':''} style="accent-color:var(--amber)"> ${u.name.split(' ')[0]}${nick}`;
+    chk.querySelector('input').onchange=e=>{
+      chk.style.background=e.target.checked?'rgba(122,182,72,.12)':'transparent';
+      chk.style.color=e.target.checked?'var(--leaf)':'var(--smoke)';
+      chk.style.borderColor=e.target.checked?'var(--leaf)':'var(--border)';
+    };
+    if(selected.includes(uid)){
+      chk.style.background='rgba(122,182,72,.12)'; chk.style.color='var(--leaf)'; chk.style.borderColor='var(--leaf)';
+    }
+    cont.appendChild(chk);
+  });
+}
+
+window.planTypChange=function(){
+  // nothing to hide/show currently, kept for future
+}
+
+window.savePlan=async function(){
+  const nazwa=$('plan-name').value.trim();
+  const czas=$('plan-time').value;
+  if(!nazwa||!czas){alert('Podaj godzinę i nazwę.');return;}
+  const editId=$('plan-edit-id').value;
+  const iso=$('plan-day-id').value||currentDayId;
+  showSync();
+  // collect checkboxes
+  const zastepy=[...$('plan-zastepy-list').querySelectorAll('input:checked')].map(i=>i.value);
+  const prowadzacy=[...$('plan-lead-list').querySelectorAll('input:checked')].map(i=>i.value);
+  const data={
+    data:iso, czas, nazwa,
+    typ:$('plan-typ').value,
+    zastepy, prowadzacy,
+    prowadzacyManual:$('plan-lead-manual').value.trim(),
+    opis:$('plan-desc').value.trim(),
+    done:editId?(state.aktywnosci[editId]?.done||false):false,
+    ts:Date.now()
+  };
+  if(editId) await update(ref(db,`aktywnosci/${editId}`),data);
+  else await push(ref(db,'aktywnosci'),data);
+  closeModal('m-plan');
+  addNotif('📅 Plan',`${editId?'Zmieniono':'Dodano'}: ${nazwa} o ${czas}`);
+}
+
+// ADD / EDIT DAY
+window.openAddDay=function(){
+  $('day-edit-id').value='';
+  $('day-data').value='';
+  $('day-typ').value='normalny';
+  $('day-nazwa').value='';
+  $('day-dest').value='';
+  $('day-uwagi').value='';
+  $('day-copy-from').innerHTML='<option value="">— zacznij od zera —</option>';
+  Object.entries(state.dni||{}).forEach(([did,d])=>{
+    $('day-copy-from').innerHTML+=`<option value="${did}">${d.data} · ${d.nazwa||DAY_TYPS[d.typ]?.label||d.typ}</option>`;
+  });
+  dayTypChange();
+  $('m-addday-title').textContent='📆 Nowy dzień';
+  openModal('m-addday');
+}
+
+window.openEditDay=function(iso){
+  const did=findDayIdByDate(iso);
+  const d=did?state.dni[did]:null;
+  $('day-edit-id').value=did||'';
+  $('day-data').value=iso;
+  $('day-typ').value=d?.typ||'normalny';
+  $('day-nazwa').value=d?.nazwa||'';
+  $('day-dest').value=d?.dest||'';
+  $('day-uwagi').value=d?.uwagi||'';
+  $('day-copy-from').innerHTML='<option value="">— nie kopiuj —</option>';
+  $('m-addday-title').textContent='✏️ Edytuj dzień';
+  dayTypChange();
+  openModal('m-addday');
+}
+
+window.openCopyDay=function(){
+  $('day-edit-id').value='';
+  // set next day as default date
+  const todayIso=currentDayId||new Date().toISOString().slice(0,10);
+  const next=new Date(todayIso+'T12:00:00');
+  next.setDate(next.getDate()+1);
+  $('day-data').value=next.toISOString().slice(0,10);
+  $('day-typ').value='normalny';
+  $('day-nazwa').value='';
+  $('day-dest').value='';
+  $('day-uwagi').value='';
+  $('day-copy-from').innerHTML='<option value="">— zacznij od zera —</option>';
+  Object.entries(state.dni||{}).forEach(([did,d])=>{
+    const selected=d.data===currentDayId?' selected':'';
+    $('day-copy-from').innerHTML+=`<option value="${did}"${selected}>${d.data} · ${d.nazwa||DAY_TYPS[d.typ]?.label||d.typ}</option>`;
+  });
+  dayTypChange();
+  $('m-addday-title').textContent='📋 Kopiuj dzień';
+  openModal('m-addday');
+}
+
+window.dayTypChange=function(){
+  const v=$('day-typ').value;
+  $('day-dest-wrap').style.display=v==='wycieczka'?'block':'none';
+}
+
+window.saveDay=async function(){
+  const iso=$('day-data').value;
+  if(!iso){alert('Wybierz datę.');return;}
+  showSync();
+  const editId=$('day-edit-id').value;
+  const data={
+    data:iso,
+    typ:$('day-typ').value,
+    nazwa:$('day-nazwa').value.trim(),
+    dest:$('day-dest').value.trim(),
+    uwagi:$('day-uwagi').value.trim(),
+    ts:Date.now()
+  };
+  let newDid;
+  if(editId){ await update(ref(db,`dni/${editId}`),data); newDid=editId; }
+  else { const r=await push(ref(db,'dni'),data); newDid=r.key; }
+
+  // copy activities if requested
+  const copyFrom=$('day-copy-from').value;
+  if(copyFrom && !editId){
+    const srcActs=Object.entries(state.aktywnosci||{}).filter(([,a])=>a.data===state.dni[copyFrom]?.data);
+    for(const [,a] of srcActs){
+      await push(ref(db,'aktywnosci'),{...a, data:iso, done:false, ts:Date.now()});
+    }
+  }
+
+  closeModal('m-addday');
+  currentDayId=iso;
+  addNotif('📆 Plan',`${editId?'Zmieniono':'Dodano'} dzień: ${iso}`);
+}
+
+// ── legacy deletePlan kept for compatibility ──
+window.deletePlan=async function(id){
+  if(!confirm('Usunąć?')) return;
+  showSync(); await remove(ref(db,`aktywnosci/${id}`)); closeModal('m-plan-detail');
+}
+
+// ── PRZYPOMNIENIA ──
+function renderRem(){
+  let rems = Object.entries(state.reminders||{});
+  // filter by role
+  if(!can('seeAll')){
+    const myParts = Object.entries(state.participants||{})
+      .filter(([,p])=>p.group===myGroup()).map(([id])=>id);
+    if(currentUser.role==='mlodziez'){
+      rems = rems.filter(([,r])=>r.createdBy===currentUser.id);
+    } else {
+      rems = rems.filter(([,r])=>r.person==='ogólne'||myParts.includes(r.person));
+    }
+  }
+  rems.sort((a,b)=>a[1].time?.localeCompare(b[1].time));
+  const pending=rems.filter(([,r])=>!r.done);
+  const done=rems.filter(([,r])=>r.done);
+  const cont=$('rem-list');
+  if(!rems.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">✨</div><div class="empty-text">Brak przypomnień. Wszystko pod kontrolą!</div></div>';
+    return;
+  }
+  cont.innerHTML='';
+  [...pending,...done].forEach(([rid,r])=>{
+    const pName=partName(r.person);
+    const div=document.createElement('div');
+    div.className=`rem-card${r.priority==='urgent'?' urgent':''}${r.done?' done-r':''}`;
+    div.innerHTML=`
+      <div class="rem-icon">${r.icon}</div>
+      <div class="rem-body">
+        <div class="rem-who">${r.priority==='urgent'?'🔴 PILNE · ':''}${pName}</div>
+        <div class="rem-text">${r.text}</div>
+        <div class="rem-time">⏰ ${r.time}</div>
+      </div>
+      <button class="done-btn${r.done?' ok':''}" onclick="toggleRem('${rid}')">${r.done?'↩':'✓'}</button>`;
+    cont.appendChild(div);
+  });
+}
+
+window.saveReminder = async function(){
+  const text=$('rem-text').value.trim();
+  const time=$('rem-time').value;
+  if(!text||!time){alert('Podaj treść i godzinę.');return;}
+  showSync();
+  await push(ref(db,'reminders'),{
+    person:$('rem-person').value,
+    text,time,
+    icon:$('rem-icon').value,
+    priority:$('rem-prio').value,
+    done:false,
+    createdBy:currentUser.id,
+    ts:Date.now()
+  });
+  closeModal('m-rem');
+  addNotif('⏰ Przypomnienie',text);
+  // reset form
+  $('rem-text').value=''; $('rem-person').value='ogólne';
+}
+
+window.toggleRem = async function(rid){
+  const r=state.reminders[rid]; if(!r) return;
+  showSync();
+  await update(ref(db,`reminders/${rid}`),{done:!r.done});
+}
+
+function checkReminderAlerts(){
+  const cur=nowMins();
+  Object.entries(state.reminders||{}).forEach(([rid,r])=>{
+    if(r.done||remAlerted.has(rid)) return;
+    const rm=timeMins(r.time);
+    if(Math.abs(rm-cur)<=2){
+      remAlerted.add(rid);
+      const pn=r.person!=='ogólne'?partName(r.person):'';
+      addNotif(`${r.icon} Przypomnienie${pn?' – '+pn:''}`,r.text);
+      if('Notification' in window&&Notification.permission==='granted'){
+        new Notification(`${r.icon} ${pn||'Obóz Echo Przodków'}`,{body:r.text});
+      }
+    }
+  });
+}
+
+// ── UCZESTNICY ──
+let moveMode=false;
+window.toggleMoveMode=function(){
+  moveMode=!moveMode;
+  renderParts();
+  const btn=document.querySelector('#part-btns .ghost');
+  if(btn) btn.textContent=moveMode?'✓ Zakończ':'🔀 Przenoś';
+}
+
+function renderParts(){
+  let parts=Object.entries(state.participants||{});
+  if(!can('seeAll')) parts=parts.filter(([,p])=>p.group===myGroup());
+  if(activeGrpFilter) parts=parts.filter(([,p])=>p.group===activeGrpFilter);
+
+  // stats
+  const total=parts.length;
+  const withH=parts.filter(([,p])=>p.health).length;
+  const withD=parts.filter(([,p])=>p.diet).length;
+  $('part-stats').innerHTML=`
+    <div class="sbox"><div class="snum">${total}</div><div class="slbl">uczestników</div></div>
+    <div class="sbox"><div class="snum">${withH}</div><div class="slbl">uwagi zdrowotne</div></div>
+    <div class="sbox"><div class="snum">${withD}</div><div class="slbl">diety spec.</div></div>`;
+
+  // group filter
+  const gf=$('grp-filter');
+  if(can('seeAll')){
+    gf.innerHTML=`<button class="cf-btn${!activeGrpFilter?' active':''}" onclick="setGrpFilter(null)">Wszyscy</button>`;
+    Object.entries(state.groups||{}).forEach(([gid,g])=>{
+      gf.innerHTML+=`<button class="cf-btn${activeGrpFilter===gid?' active':''}" onclick="setGrpFilter('${gid}')">${g.icon} ${g.name}</button>`;
+    });
+  } else gf.innerHTML='';
+
+  const grid=$('pgrid');
+  if(!parts.length){
+    grid.innerHTML='<div style="grid-column:1/-1"><div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Brak uczestników.</div></div></div>';
+    return;
+  }
+  grid.innerHTML='';
+  parts.forEach(([pid,p])=>{
+    const grpN=groupName(p.group);
+    const initials=(p.first[0]||'?')+(p.last[0]||'?');
+    const div=document.createElement('div');
+    div.className='pc';
+    div.onclick=()=>moveMode?openMoveModal(pid):openPartDetail(pid);
+    div.innerHTML=`
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div class="pc-av">${initials}</div>
+        <div>
+          <div class="pc-name">${p.first} ${p.last}</div>
+          <div class="pc-meta">${p.age} l.${grpN?' · '+grpN:''}</div>
+        </div>
+        ${moveMode?'<div style="margin-left:auto;font-size:20px">🔀</div>':''}
+      </div>
+      <div class="ptags">
+        ${p.health?`<span class="ptag ptag-h">🩺 ${p.health}</span>`:''}
+        ${p.diet?`<span class="ptag ptag-d">🌿 ${p.diet}</span>`:''}
+        ${p.swim?`<span class="ptag ptag-s">🏊 ${p.swim}</span>`:''}
+      </div>`;
+    grid.appendChild(div);
+  });
+}
+
+window.setGrpFilter=function(id){activeGrpFilter=id;renderParts()}
+
+window.openAddPart=function(editId=null){
+  $('part-edit-id').value=editId||'';
+  $('m-part-title').textContent=editId?'✏️ Edytuj uczestnika':'👤 Nowy uczestnik';
+  if(editId){
+    const p=state.participants[editId];
+    $('part-first').value=p.first||'';
+    $('part-last').value=p.last||'';
+    $('part-age').value=p.age||'';
+    $('part-group').value=p.group||'';
+    $('part-health').value=p.health||'';
+    $('part-diet').value=p.diet||'';
+    $('part-swim').value=p.swim||'';
+    $('part-contact').value=p.contact||'';
+  } else {
+    ['part-first','part-last','part-age','part-health','part-diet','part-contact'].forEach(id=>$(id).value='');
+    $('part-group').value=myGroup()||'';
+    $('part-swim').value='';
+  }
+  openModal('m-part');
+}
+
+window.savePart=async function(){
+  const first=$('part-first').value.trim();
+  const last=$('part-last').value.trim();
+  if(!first||!last){alert('Podaj imię i nazwisko.');return;}
+  showSync();
+  const editId=$('part-edit-id').value;
+  const data={
+    first,last,age:parseInt($('part-age').value)||12,
+    group:$('part-group').value||null,
+    health:$('part-health').value.trim(),
+    diet:$('part-diet').value.trim(),
+    swim:$('part-swim').value,
+    contact:$('part-contact').value.trim()
+  };
+  if(editId) await update(ref(db,`participants/${editId}`),data);
+  else await push(ref(db,'participants'),data);
+  closeModal('m-part');
+}
+
+window.openPartDetail=function(pid){
+  const p=state.participants[pid]; if(!p) return;
+  const grpN=groupName(p.group);
+  const rems=Object.entries(state.reminders||{}).filter(([,r])=>r.person===pid&&!r.done);
+  $('part-detail-content').innerHTML=`
+    <div class="mtitle">👤 ${p.first} ${p.last}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><div style="font-size:11px;color:var(--ash)">WIEK</div><div style="font-size:18px">${p.age} lat</div></div>
+      <div><div style="font-size:11px;color:var(--ash)">ZASTĘP</div><div style="font-size:18px">${grpN||'–'}</div></div>
+    </div>
+    ${p.health?`<div class="card accent-ember" style="margin-bottom:8px"><div style="font-size:11px;color:var(--ember);font-family:'Cinzel',serif">⚠️ ZDROWIE</div><div style="margin-top:4px">${p.health}</div></div>`:''}
+    ${p.diet?`<div class="card accent-leaf" style="margin-bottom:8px"><div style="font-size:11px;color:var(--leaf);font-family:'Cinzel',serif">🌿 DIETA</div><div style="margin-top:4px">${p.diet}</div></div>`:''}
+    ${p.swim?`<div class="card accent-blue" style="margin-bottom:8px"><div style="font-size:11px;color:#a0c0ff;font-family:'Cinzel',serif">🏊 PŁYWANIE</div><div style="margin-top:4px">${p.swim}</div></div>`:''}
+    <div class="card" style="margin-bottom:8px"><div style="font-size:11px;color:var(--gold);font-family:'Cinzel',serif">📞 KONTAKT ALARMOWY</div><div style="margin-top:4px">${p.contact||'brak'}</div></div>
+    ${rems.length?`<div style="margin-top:12px"><div style="font-size:12px;color:var(--amber);font-family:'Cinzel',serif;margin-bottom:7px">⏰ Aktywne przypomnienia (${rems.length})</div>
+    ${rems.map(([,r])=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;gap:7px">${r.icon} ${r.text} <span style="color:var(--ash);margin-left:auto">${r.time}</span></div>`).join('')}</div>`:''}`;
+  const btns=$('part-detail-btns');
+  btns.innerHTML=`<button class="btn-cancel" onclick="closeModal('m-part-detail')">Zamknij</button>`;
+  if(can('editParts'))
+    btns.innerHTML+=`<button class="btn-save" onclick="closeModal('m-part-detail');openAddPart('${pid}')">✏️ Edytuj</button>`;
+  if(can('moveParts'))
+    btns.innerHTML+=`<button class="btn-save ghost" onclick="closeModal('m-part-detail');openMoveModal('${pid}')">🔀</button>`;
+  openModal('m-part-detail');
+}
+
+window.openMoveModal=function(pid){
+  movePartId=pid;
+  const p=state.participants[pid];
+  $('m-move-name').textContent=`${p.first} ${p.last}`;
+  $('move-group').value=p.group||'';
+  openModal('m-move');
+}
+
+window.confirmMove=async function(){
+  if(!movePartId) return;
+  showSync();
+  await update(ref(db,`participants/${movePartId}`),{group:$('move-group').value||null});
+  movePartId=null;
+  closeModal('m-move');
+}
+
+// ── DOKUMENTY ──
+window.renderDocs=function(){
+  renderDocCatFilter();
+  const query=($('doc-search')?.value||'').toLowerCase();
+  let docs=Object.entries(state.documents||{});
+  if(currentUser.role!=='komendant') docs=docs.filter(([,d])=>d.access!=='komendant');
+  if(activeDocCat) docs=docs.filter(([,d])=>d.category===activeDocCat);
+  if(query) docs=docs.filter(([,d])=>d.title?.toLowerCase().includes(query)||(d.body||'').toLowerCase().includes(query));
+
+  const cont=$('doc-list');
+  if(!docs.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Brak dokumentów.</div></div>';
+    return;
+  }
+  const grouped={};
+  docs.forEach(([id,d])=>{if(!grouped[d.category])grouped[d.category]=[];grouped[d.category].push([id,d])});
+  cont.innerHTML='';
+  Object.entries(grouped).forEach(([cat,items])=>{
+    const m=CAT_META[cat]||{icon:'📁',label:cat};
+    const h=document.createElement('div');
+    h.style.cssText='font-family:"Cinzel",serif;font-size:12px;color:var(--ash);letter-spacing:.07em;text-transform:uppercase;margin:14px 0 8px;display:flex;align-items:center;gap:7px';
+    h.innerHTML=`${m.icon} ${m.label} <span style="font-size:10px;background:rgba(200,168,75,.08);border:1px solid var(--border);border-radius:10px;padding:1px 6px;color:var(--gold)">${items.length}</span>`;
+    cont.appendChild(h);
+    items.forEach(([id,d])=>{
+      const excerpt=(d.body||'').substring(0,100).replace(/\n/g,' ')+'…';
+      const div=document.createElement('div');
+      div.className=`dcard cat-${d.category}`;
+      div.onclick=()=>openDoc(id);
+      div.innerHTML=`<div class="di">${m.icon}</div>
+        <div class="db">
+          <div class="dn">${d.title}</div>
+          <div class="dm">Dodano: ${d.added} · ${d.addedBy}</div>
+          <div class="de">${excerpt}</div>
+        </div>
+        ${d.access==='komendant'?'<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(200,168,75,.1);border:1px solid rgba(200,168,75,.25);color:var(--gold);font-family:Cinzel,serif;white-space:nowrap;align-self:flex-start;margin-top:4px">🔒</span>':''}`;
+      cont.appendChild(div);
+    });
+  });
+}
+
+function renderDocCatFilter(){
+  const cats=[...new Set(Object.values(state.documents||{}).map(d=>d.category))];
+  const cf=$('cat-filter');
+  cf.innerHTML=`<button class="cf-btn${!activeDocCat?' active':''}" onclick="setDocCat(null)">Wszystkie</button>`;
+  cats.forEach(c=>{
+    const m=CAT_META[c]||{icon:'📁',label:c};
+    cf.innerHTML+=`<button class="cf-btn${activeDocCat===c?' active':''}" onclick="setDocCat('${c}')">${m.icon} ${m.label}</button>`;
+  });
+}
+
+window.setDocCat=function(cat){activeDocCat=cat;renderDocs()}
+
+window.openDoc=function(id){
+  const d=state.documents[id]; if(!d) return;
+  currentDocId=id;
+  const m=CAT_META[d.category]||{icon:'📁'};
+  $('docview-content').innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--gold);margin-bottom:5px">${m.icon} ${d.title}</div>
+    <div style="font-size:12px;color:var(--ash);font-style:italic;margin-bottom:14px">${CAT_META[d.category]?.label||d.category} · ${d.added} · ${d.addedBy}</div>
+    <div style="font-size:14px;line-height:1.8;color:var(--parchment);white-space:pre-wrap;border-top:1px solid var(--border);padding-top:14px">${(d.body||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+  const btns=$('docview-btns');
+  btns.innerHTML=`<button class="btn-cancel" onclick="closeModal('m-docview')">Zamknij</button>`;
+  if(can('editDocs')){
+    btns.innerHTML+=`<button class="btn-save" onclick="closeModal('m-docview');openEditDoc('${id}')">✏️ Edytuj</button>`;
+    btns.innerHTML+=`<button class="btn-save red" onclick="deleteDoc('${id}')">🗑️</button>`;
+  }
+  openModal('m-docview');
+}
+
+window.openEditDoc=function(id){
+  const d=state.documents[id]; if(!d) return;
+  $('doc-edit-id').value=id;
+  $('doc-title').value=d.title||'';
+  $('doc-cat').value=d.category||'inne';
+  $('doc-access').value=d.access||'all';
+  $('doc-body').value=d.body||'';
+  openModal('m-adddoc');
+}
+
+window.saveDoc=async function(){
+  const title=$('doc-title').value.trim();
+  const body=$('doc-body').value.trim();
+  if(!title||!body){alert('Podaj tytuł i treść.');return;}
+  showSync();
+  const editId=$('doc-edit-id').value;
+  const now=new Date().toISOString().slice(0,10);
+  const data={title,category:$('doc-cat').value,access:$('doc-access').value,body,
+    added:editId?(state.documents[editId]?.added||now):now,
+    addedBy:editId?(state.documents[editId]?.addedBy||currentUser.name):currentUser.name};
+  if(editId) await update(ref(db,`documents/${editId}`),data);
+  else await push(ref(db,'documents'),data);
+  $('doc-edit-id').value='';
+  $('doc-title').value=''; $('doc-body').value='';
+  closeModal('m-adddoc');
+  addNotif('📜 Dokument',`${editId?'Zmieniono':'Dodano'}: ${title}`);
+}
+
+window.deleteDoc=async function(id){
+  if(!confirm('Usunąć dokument?')) return;
+  showSync();
+  await remove(ref(db,`documents/${id}`));
+  closeModal('m-docview');
+}
+
+// ── ADMIN ──
+function renderAdmin(){
+  const grid=$('admin-grid');
+  grid.innerHTML='';
+
+  // KADRA
+  const uCard=document.createElement('div'); uCard.className='acard';
+  uCard.innerHTML=`<div class="acard-title">👥 Kadra obozu <button class="btn-sm" onclick="openAddUser()" style="font-size:10px;padding:4px 9px">+ Dodaj</button></div>`;
+  Object.entries(state.users||{}).forEach(([uid,u])=>{
+    const grpN=u.group?(state.groups[u.group]?.icon+' '+state.groups[u.group]?.name)||'':'';
+    const nick=u.nick?` „${u.nick}"`:'';
+    uCard.innerHTML+=`<div class="urow">
+      <div class="uav">${u.name[0]}</div>
+      <div class="ui">
+        <div class="un">${u.name}${nick}</div>
+        <div class="ur">${grpN||'bez zastępu'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <select class="rsel" onchange="changeRole('${uid}',this.value)">
+          ${Object.entries(ROLE_LABELS).map(([v,l])=>`<option value="${v}"${u.role===v?' selected':''}>${l}</option>`).join('')}
+        </select>
+        <button class="btn-sm ghost" style="font-size:10px;padding:3px 7px" onclick="openEditUser('${uid}')">✏️</button>
+      </div>
+    </div>`;
+  });
+  grid.appendChild(uCard);
+
+  // ZASTĘPY
+  const gCard=document.createElement('div'); gCard.className='acard';
+  gCard.innerHTML=`<div class="acard-title">🏕️ Zastępy <button class="btn-sm" onclick="openAddGroup()" style="font-size:10px;padding:4px 9px">+ Dodaj</button></div>`;
+  Object.entries(state.groups||{}).forEach(([gid,g])=>{
+    const cnt=Object.values(state.participants||{}).filter(p=>p.group===gid).length;
+    const wych=Object.values(state.users||{}).find(u=>u.group===gid&&u.role==='wychowawca');
+    gCard.innerHTML+=`<div class="urow">
+      <div class="uav">${g.icon}</div>
+      <div class="ui">
+        <div class="un">Zastęp ${g.name}</div>
+        <div class="ur">${cnt} uczestników · ${wych?wych.name:'brak wychowawcy'}</div>
+      </div>
+      <button class="btn-sm ghost" style="font-size:10px;padding:3px 7px" onclick="openEditGroup('${gid}')">✏️</button>
+    </div>`;
+  });
+  grid.appendChild(gCard);
+
+  // BROADCAST
+  const bCard=document.createElement('div'); bCard.className='acard';
+  bCard.innerHTML=`<div class="acard-title">📢 Komunikat do kadry</div>
+    <button class="btn-save" style="width:100%;padding:11px;border:none;border-radius:9px;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;background:linear-gradient(135deg,var(--amber),#8a4a0a);color:var(--cream)" onclick="openModal('m-broadcast')">📢 Napisz komunikat</button>`;
+  grid.appendChild(bCard);
+
+  // PROFIL
+  const pCard=document.createElement('div'); pCard.className='acard';
+  pCard.innerHTML=`<div class="acard-title">👤 Mój profil</div>
+    <div style="font-size:14px;color:var(--smoke);margin-bottom:10px">Nick: <strong style="color:var(--parchment)">${currentUser.nick||'—'}</strong></div>
+    <button class="btn-save" style="width:100%;padding:11px;border:none;border-radius:9px;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;background:linear-gradient(135deg,var(--amber),#8a4a0a);color:var(--cream)" onclick="openProfileEdit()">✏️ Edytuj profil</button>`;
+  grid.appendChild(pCard);
+
+  // STATS
+  const total=Object.keys(state.participants||{}).length;
+  const urgent=Object.values(state.reminders||{}).filter(r=>r.priority==='urgent'&&!r.done).length;
+  const donePl=Object.values(state.plan||{}).filter(p=>p.done).length;
+  const allPl=Object.keys(state.plan||{}).length;
+  $('admin-stats').innerHTML=`
+    <div class="sbox"><div class="snum">${total}</div><div class="slbl">uczestników</div></div>
+    <div class="sbox"><div class="snum" style="color:var(--ember)">${urgent}</div><div class="slbl">pilne przyp.</div></div>
+    <div class="sbox"><div class="snum" style="color:var(--leaf)">${donePl}/${allPl}</div><div class="slbl">plan</div></div>`;
+}
+
+window.changeRole=async function(uid,role){
+  showSync();
+  await update(ref(db,`users/${uid}`),{role});
+  addNotif('⚙️ Uprawnienia',`Zmieniono rolę użytkownika`);
+}
+
+window.openAddUser=function(editId=null){
+  $('user-edit-id').value=editId||'';
+  $('m-adduser-title').textContent=editId?'✏️ Edytuj kadrę':'➕ Nowa osoba z kadry';
+  if(editId){
+    const u=state.users[editId];
+    $('nu-name').value=u.name||'';
+    $('nu-nick').value=u.nick||'';
+    $('nu-pin').value=u.pin||'';
+    $('nu-role').value=u.role||'wychowawca';
+    $('nu-group').value=u.group||'';
+  } else {
+    ['nu-name','nu-nick','nu-pin'].forEach(id=>$(id).value='');
+    $('nu-role').value='wychowawca'; $('nu-group').value='';
+  }
+  openModal('m-adduser');
+}
+
+window.openEditUser=function(id){openAddUser(id)}
+
+window.saveUser=async function(){
+  const name=$('nu-name').value.trim();
+  const pin=$('nu-pin').value.trim();
+  const editId=$('user-edit-id').value;
+  if(!name){alert('Podaj imię i nazwisko.');return;}
+  if(!editId&&pin.length!==4){alert('PIN musi mieć 4 cyfry.');return;}
+  showSync();
+  const data={
+    name,nick:$('nu-nick').value.trim(),
+    role:$('nu-role').value,
+    group:$('nu-group').value||null
+  };
+  if(pin) data.pin=pin;
+  if(editId) await update(ref(db,`users/${editId}`),data);
+  else await push(ref(db,'users'),{...data,pin});
+  closeModal('m-adduser');
+  populateSelects();
+  renderAdmin();
+}
+
+window.openAddGroup=function(editId=null){
+  $('grp-edit-id').value=editId||'';
+  if(editId){
+    const g=state.groups[editId];
+    $('grp-name').value=g.name||'';
+    $('grp-icon').value=g.icon||'';
+  } else {
+    $('grp-name').value=''; $('grp-icon').value='';
+  }
+  openModal('m-addgroup');
+}
+
+window.openEditGroup=function(id){openAddGroup(id)}
+
+window.saveGroup=async function(){
+  const name=$('grp-name').value.trim();
+  if(!name){alert('Podaj nazwę zastępu.');return;}
+  showSync();
+  const editId=$('grp-edit-id').value;
+  const data={name,icon:$('grp-icon').value||'🏕️'};
+  if(editId) await update(ref(db,`groups/${editId}`),data);
+  else await push(ref(db,'groups'),data);
+  closeModal('m-addgroup');
+  populateSelects(); renderAdmin();
+}
+
+window.sendBroadcast=async function(){
+  const text=$('bc-text').value.trim();
+  if(!text) return;
+  await addNotif('📢 Komunikat Komendanta', text);
+  if('Notification' in window&&Notification.permission==='granted')
+    new Notification('📢 Echo Przodków',{body:text});
+  $('bc-text').value='';
+  closeModal('m-broadcast');
+}
+
+// PROFIL
+window.openProfileEdit=function(){
+  $('prof-nick').value=currentUser.nick||'';
+  $('prof-pin').value='';
+  openModal('m-profile');
+  closeModal('m-broadcast'); // safety
+}
+// also in topbar for all roles
+$('tb-name').addEventListener('click',()=>{if(currentUser)openProfileEdit()});
+
+window.saveProfile=async function(){
+  const nick=$('prof-nick').value.trim();
+  const pin=$('prof-pin').value.trim();
+  if(pin&&pin.length!==4){alert('PIN musi mieć 4 cyfry.');return;}
+  showSync();
+  const data={nick};
+  if(pin) data.pin=pin;
+  await update(ref(db,`users/${currentUser.id}`),data);
+  currentUser.nick=nick;
+  if(pin) currentUser.pin=pin;
+  const grpN=currentUser.group?(state.groups[currentUser.group]?.icon+' '+state.groups[currentUser.group]?.name)||'':'';
+  $('tb-role').innerHTML=`<span class="online-dot${navigator.onLine?'':' off'}"></span>${ROLE_LABELS[currentUser.role]||currentUser.role}${grpN?' · '+grpN:''}`;
+  closeModal('m-profile');
+}
+
+// ── NOTIFICATIONS ──
+async function addNotif(title,text){
+  const time=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  await push(ref(db,'notifications'),{title,text,time,ts:Date.now()});
+}
+
+function renderNotifList(){
+  const items=Object.entries(state.notifications||{})
+    .sort((a,b)=>b[1].ts-a[1].ts).slice(0,15);
+  const nl=$('nlist');
+  if(!items.length){nl.innerHTML='<div style="padding:16px;text-align:center;color:var(--ash);font-style:italic;font-size:13px">Brak powiadomień</div>';return;}
+  nl.innerHTML=items.map(([,n])=>`<div class="ni">
+    <div class="ni-icon">${n.title?.[0]||'🔔'}</div>
+    <div><div class="ni-t">${n.title}</div><div class="ni-s">${n.text}</div><div class="ni-s">${n.time||''}</div></div>
+  </div>`).join('');
+}
+
+function updateBadges(){
+  const notifs=Object.keys(state.notifications||{}).length;
+  const nb=$('notif-badge');
+  if(notifs>0){nb.style.display='flex';nb.textContent=notifs>9?'9+':notifs;}
+  else nb.style.display='none';
+  const pend=Object.values(state.reminders||{}).filter(r=>!r.done).length;
+  const rnb=$('rem-nb');
+  if(pend>0){rnb.style.display='inline';rnb.textContent=pend;}
+  else rnb.style.display='none';
+}
+
+window.toggleNotif=function(){
+  const p=$('npanel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')){
+    renderNotifList();
+    // clear badge
+    $('notif-badge').style.display='none';
+  }
+}
+
+window.clearNotifs=async function(){
+  showSync();
+  await remove(ref(db,'notifications'));
+}
+
+document.addEventListener('click',e=>{
+  const p=$('npanel'); const b=$('bell-btn');
+  if(p?.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))
+    p.classList.remove('open');
+});
+
+// ── MODALS ──
+window.openModal=function(id){
+  $(id)?.classList.add('open');
+  // auto-fill time fields
+  const n=new Date();
+  const t=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+  if(id==='m-rem'&&$('rem-time')) $('rem-time').value=t;
+}
+
+window.closeModal=function(id){$(id)?.classList.remove('open')}
+
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')});
+});
+
+// ── PUSH NOTIFICATIONS ──
+async function requestPush(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default') await Notification.requestPermission();
+  if(Notification.permission!=='granted') return;
+  try {
+    if(!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging,{vapidKey:VAPID,serviceWorkerRegistration:reg});
+    if(token) await update(ref(db,`users/${currentUser.id}`),{fcmToken:token});
+    onMessage(messaging, payload=>{
+      const {title,body} = payload.notification||{};
+      if(title) addNotif(title,body||'');
+    });
+  } catch(e){ console.warn('FCM setup:',e); }
+}
+
+// ── BOOT ──
+const fbApp = initializeApp; // already initialized
+showScreen('loading');
+setTimeout(initLogin, 800);
+</script>
+
+<!-- SERVICE WORKER REGISTRATION -->
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    .catch(e => console.warn('SW:', e));
+}
+</script>
+</body>
+</html>
