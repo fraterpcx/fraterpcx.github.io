@@ -904,17 +904,32 @@ function groupName(gid){
   return g ? `${g.icon} ${g.name}` : '';
 }
 
+function initial(name){
+  if(!name) return '';
+  return (name.trim()[0]||'').toUpperCase()+'.';
+}
+
 function partName(pid){
   if(!pid||pid==='ogólne') return 'Ogólne';
   const p = state.participants[pid];
-  return p ? `${p.first} ${p.last}` : pid;
+  return p ? `${p.first} ${initial(p.last)}` : pid;
+}
+
+function partNameFull(pid){
+  // only used internally where needed (e.g. edit form label)
+  if(!pid||pid==='ogólne') return 'Ogólne';
+  const p = state.participants[pid];
+  return p ? `${p.first} ${initial(p.last)}` : pid;
 }
 
 function staffName(uid){
   if(!uid) return '';
   const u = state.users[uid];
   if(!u) return uid;
-  return u.nick ? `${u.nick} (${u.name.split(' ')[0]})` : u.name;
+  // nick takes priority, then "Imię I."
+  if(u.nick) return u.nick;
+  const parts = u.name.trim().split(' ');
+  return parts.length>=2 ? `${parts[0]} ${initial(parts[1])}` : parts[0];
 }
 
 function nowMins(){
@@ -1105,7 +1120,9 @@ function showScreen(id){
 function initApp(){
   const u = currentUser;
   const nick = u.nick ? `„${u.nick}"` : u.name.split(' ')[0];
-  $('tb-name').textContent = u.name;
+  const parts0 = u.name.trim().split(' ');
+  const displayName = u.nick || (parts0.length>=2 ? `${parts0[0]} ${initial(parts0[1])}` : parts0[0]);
+  $('tb-name').textContent = displayName;
   const grpN = u.group ? (state.groups[u.group]?.icon+' '+state.groups[u.group]?.name)||'' : '';
   $('tb-role').textContent = `${ROLE_LABELS[u.role]||u.role}${grpN?' · '+grpN:''}`;
 
@@ -1164,10 +1181,10 @@ function populateSelects(){
   const rp=$('rem-person'); if(rp){
     const v=rp.value;
     rp.innerHTML='<option value="ogólne">— ogólne —</option>';
-    // filter parts by role
-    parts.forEach(([pid,p])=>{
-      if(!can('seeAll') && p.group!==myGroup()) return;
-      rp.innerHTML+=`<option value="${pid}">${p.first} ${p.last}</option>`;
+    let rparts=Object.entries(state.participants||{});
+    if(!can('seeAll')) rparts=rparts.filter(([,p])=>p.group===myGroup());
+    sortedParts(rparts).forEach(([pid,p])=>{
+      rp.innerHTML+=`<option value="${pid}">${p.first} ${initial(p.last)}</option>`;
     });
     rp.value=v;
   }
@@ -1877,9 +1894,9 @@ window.openAddZdrowie=function(editId=null){
   sel.innerHTML='<option value="">— wybierz uczestnika —</option>';
   let parts=Object.entries(state.participants||{});
   if(!can('seeAll')) parts=parts.filter(([,p])=>p.group===myGroup());
-  parts.forEach(([pid,p])=>{
+  sortedParts(parts).forEach(([pid,p])=>{
     const grp=state.groups[p.group];
-    sel.innerHTML+=`<option value="${pid}">${p.first} ${p.last}${grp?' · '+grp.icon+grp.name:''}</option>`;
+    sel.innerHTML+=`<option value="${pid}">${p.first} ${initial(p.last)}${grp?' · '+grp.icon+grp.name:''}</option>`;
   });
 
   if(editId){
@@ -1969,12 +1986,12 @@ window.saveZdrowie=async function(){
 function renderZdrowie(){
   let parts=Object.entries(state.participants||{});
   if(!can('seeAll')) parts=parts.filter(([,p])=>p.group===myGroup());
+  parts=sortedParts(parts);
 
-  // filter bar
   const fbar=$('zdr-filter');
-  fbar.innerHTML=`<button class="cf-btn active" onclick="setZdrFilter(null)">Wszyscy</button>
-    <button class="cf-btn" onclick="setZdrFilter('incidents')" style="${zdrFilter==='incidents'?'background:rgba(200,168,75,.12);border-color:var(--gold);color:var(--gold)':''}">⚠️ Z incydentami</button>
-    <button class="cf-btn" onclick="setZdrFilter('health')" style="${zdrFilter==='health'?'background:rgba(201,79,12,.15);border-color:var(--ember);color:#f4a060':''}">🩺 Uwagi zdrowotne</button>`;
+  fbar.innerHTML=`<button class="cf-btn${!zdrFilter?' active':''}" onclick="setZdrFilter(null)">Wszyscy</button>
+    <button class="cf-btn${zdrFilter==='incidents'?' active':''}" onclick="setZdrFilter('incidents')">⚠️ Z incydentami</button>
+    <button class="cf-btn${zdrFilter==='health'?' active':''}" onclick="setZdrFilter('health')">🩺 Uwagi zdrowotne</button>`;
 
   let shown=parts;
   if(zdrFilter==='incidents') shown=parts.filter(([pid])=>Object.values(state.zdrowotne||{}).some(z=>z.uczestnikId===pid));
@@ -1997,7 +2014,7 @@ function renderZdrowie(){
     div.innerHTML=`
       <div class="${hasIncidents?'zdr-count':'zdr-count ok'}">${hasIncidents?incidents.length:'✓'}</div>
       <div style="flex:1">
-        <div style="font-size:15px;color:var(--parchment);font-weight:600">${p.first} ${p.last}</div>
+        <div style="font-size:15px;color:var(--parchment);font-weight:600">${p.first} ${initial(p.last)}</div>
         <div style="font-size:12px;color:var(--ash);margin-top:2px">${grp?grp.icon+' '+grp.name:''} · ${p.age} lat</div>
         ${p.health?`<div style="font-size:12px;color:#f4a060;margin-top:3px">🩺 ${p.health}</div>`:''}
         ${hasIncidents?`<div style="font-size:12px;color:var(--smoke);margin-top:2px">Ostatni: ${incidents.sort((a,b)=>b[1].ts-a[1].ts)[0][1].data}</div>`:''}
@@ -2018,7 +2035,7 @@ window.openZdrHistoria=function(pid){
     .sort((a,b)=>b[1].ts-a[1].ts);
 
   let html=`
-    <div class="mtitle">🩺 ${p.first} ${p.last}</div>
+    <div class="mtitle">🩺 ${p.first} ${initial(p.last)}</div>
     <div style="font-size:13px;color:var(--ash);margin-bottom:14px">${grp?grp.icon+' '+grp.name:''} · ${p.age} lat${p.health?' · ⚠️ '+p.health:''}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">Incydenty (${incidents.length})</div>
@@ -2064,8 +2081,13 @@ window.deleteZdrowie=async function(zid,pid){
   openZdrHistoria(pid);
 }
 
-// ── UCZESTNICY ──
-let moveMode=false;
+function sortedParts(parts){
+  return parts.sort((a,b)=>{
+    const la=a[1].last||''; const lb=b[1].last||'';
+    const fa=a[1].first||''; const fb=b[1].first||'';
+    return la.localeCompare(lb,'pl')||fa.localeCompare(fb,'pl');
+  });
+}
 window.toggleMoveMode=function(){
   moveMode=!moveMode;
   renderParts();
@@ -2077,6 +2099,7 @@ function renderParts(){
   let parts=Object.entries(state.participants||{});
   if(!can('seeAll')) parts=parts.filter(([,p])=>p.group===myGroup());
   if(activeGrpFilter) parts=parts.filter(([,p])=>p.group===activeGrpFilter);
+  parts=sortedParts(parts);
 
   // stats
   const total=parts.length;
@@ -2112,7 +2135,7 @@ function renderParts(){
       <div style="display:flex;gap:10px;align-items:flex-start">
         <div class="pc-av">${initials}</div>
         <div>
-          <div class="pc-name">${p.first} ${p.last}</div>
+          <div class="pc-name">${p.first} ${initial(p.last)}</div>
           <div class="pc-meta">${p.age} l.${grpN?' · '+grpN:''}</div>
         </div>
         ${moveMode?'<div style="margin-left:auto;font-size:20px">🔀</div>':''}
@@ -2173,7 +2196,7 @@ window.openPartDetail=function(pid){
   const grpN=groupName(p.group);
   const rems=Object.entries(state.reminders||{}).filter(([,r])=>r.person===pid&&!r.done);
   $('part-detail-content').innerHTML=`
-    <div class="mtitle">👤 ${p.first} ${p.last}</div>
+    <div class="mtitle">👤 ${p.first} ${initial(p.last)}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div><div style="font-size:11px;color:var(--ash)">WIEK</div><div style="font-size:18px">${p.age} lat</div></div>
       <div><div style="font-size:11px;color:var(--ash)">ZASTĘP</div><div style="font-size:18px">${grpN||'–'}</div></div>
@@ -2196,7 +2219,7 @@ window.openPartDetail=function(pid){
 window.openMoveModal=function(pid){
   movePartId=pid;
   const p=state.participants[pid];
-  $('m-move-name').textContent=`${p.first} ${p.last}`;
+  $('m-move-name').textContent=`${p.first} ${initial(p.last)}`;
   $('move-group').value=p.group||'';
   openModal('m-move');
 }
@@ -2322,12 +2345,13 @@ function renderAdmin(){
   const uCard=document.createElement('div'); uCard.className='acard';
   uCard.innerHTML=`<div class="acard-title">👥 Kadra obozu <button class="btn-sm" onclick="openAddUser()" style="font-size:10px;padding:4px 9px">+ Dodaj</button></div>`;
   Object.entries(state.users||{}).forEach(([uid,u])=>{
+    const parts0=u.name.trim().split(' ');
+    const displayStaff=u.nick||( parts0.length>=2?`${parts0[0]} ${initial(parts0[1])}`:parts0[0]);
     const grpN=u.group?(state.groups[u.group]?.icon+' '+state.groups[u.group]?.name)||'':'';
-    const nick=u.nick?` „${u.nick}"`:'';
     uCard.innerHTML+=`<div class="urow">
       <div class="uav">${u.name[0]}</div>
       <div class="ui">
-        <div class="un">${u.name}${nick}</div>
+        <div class="un">${displayStaff}</div>
         <div class="ur">${grpN||'bez zastępu'}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
