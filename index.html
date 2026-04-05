@@ -255,6 +255,29 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(200,168,75,.25);border-radius:2px}
 
+/* ── ZDROWIE ── */
+.zdr-part-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:9px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:12px}
+.zdr-part-card:active{border-color:var(--border-h)}
+.zdr-part-card.has-incidents{border-left:3px solid var(--ember)}
+.zdr-count{font-family:'Cinzel',serif;font-size:20px;color:var(--ember);min-width:32px;text-align:center}
+.zdr-count.ok{color:var(--leaf);font-size:16px}
+.zdr-incident{background:rgba(22,37,22,.8);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;position:relative;overflow:hidden}
+.zdr-incident::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ember)}
+.zdr-incident.ok::before{background:var(--leaf)}
+.zdr-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.zdr-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-family:'Cinzel',serif;border:1px solid}
+.zdr-badge-red{background:rgba(201,79,12,.2);border-color:rgba(201,79,12,.4);color:#f4a060}
+.zdr-badge-green{background:rgba(74,103,65,.2);border-color:rgba(122,182,72,.3);color:var(--leaf)}
+.zdr-badge-gold{background:rgba(200,168,75,.12);border-color:rgba(200,168,75,.3);color:var(--gold)}
+
+/* ── HISTORIA TABELA ── */
+.hist-table{width:100%;border-collapse:collapse;font-size:12px}
+.hist-table th{font-family:'Cinzel',serif;font-size:10px;color:var(--ash);letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.hist-table td{padding:6px 8px;border-bottom:1px solid rgba(200,168,75,.06);vertical-align:middle}
+.hist-ok{color:var(--leaf);font-size:16px}
+.hist-no{color:var(--ash);font-size:14px}
+.hist-skip{color:rgba(200,168,75,.2);font-size:14px}
+
 #day-tabs::-webkit-scrollbar{display:none}
 
 @media(min-width:600px){.page{padding:18px 22px}}
@@ -320,6 +343,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
   <div class="nav" id="nav">
     <div class="nt active" data-tab="plan" onclick="switchTab('plan')"><span class="ti">📅</span> Plan Dnia</div>
     <div class="nt" data-tab="rem" onclick="switchTab('rem')"><span class="ti">⏰</span> Przypomnienia<span class="nb" id="rem-nb" style="display:none">0</span></div>
+    <div class="nt" data-tab="zdrowie" onclick="switchTab('zdrowie')"><span class="ti">🩺</span> Zdrowie</div>
     <div class="nt" data-tab="uczestnicy" onclick="switchTab('uczestnicy')"><span class="ti">👥</span> Uczestnicy</div>
     <div class="nt" data-tab="docs" onclick="switchTab('docs')"><span class="ti">📜</span> Dokumenty</div>
     <div class="nt" data-tab="admin" id="tab-admin" onclick="switchTab('admin')" style="display:none"><span class="ti">⚙️</span> Komendant</div>
@@ -361,6 +385,18 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
         <button class="btn-sm" onclick="openModal('m-rem')">+ Dodaj</button>
       </div>
       <div id="rem-list"></div>
+    </div>
+
+    <!-- ZDROWIE -->
+    <div class="page" id="page-zdrowie">
+      <div class="sh">
+        <div class="st">🩺 Zdrowie</div>
+        <button class="btn-sm" onclick="openAddZdrowie()">+ Incydent</button>
+      </div>
+      <!-- Filter -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="zdr-filter"></div>
+      <!-- List -->
+      <div id="zdr-list"></div>
     </div>
 
     <!-- UCZESTNICY -->
@@ -511,9 +547,91 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
         <option value="🌙">🌙 Cisza nocna</option>
       </select>
     </div>
+    <div class="fg" style="display:flex;align-items:center;gap:10px;background:rgba(200,168,75,.06);border:1px solid var(--border);border-radius:9px;padding:12px 14px">
+      <input type="checkbox" id="rem-cykliczne" style="accent-color:var(--amber);width:18px;height:18px;flex-shrink:0">
+      <div>
+        <div style="font-size:14px;color:var(--parchment)">Powtarzaj codziennie</div>
+        <div style="font-size:12px;color:var(--ash);margin-top:2px">Przypomnienie odnowi się każdego dnia o tej samej godzinie</div>
+      </div>
+    </div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('m-rem')">Anuluj</button>
       <button class="btn-save" onclick="saveReminder()">Dodaj ⏰</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ZDROWIE – NOWY INCYDENT -->
+<div class="overlay" id="m-zdrowie">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="m-zdr-title">🩺 Nowy incydent zdrowotny</div>
+    <input type="hidden" id="zdr-edit-id">
+    <div class="fg"><label>Uczestnik</label>
+      <select id="zdr-uczestnik" class="fi"><option value="">— wybierz —</option></select>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Data</label><input type="date" id="zdr-data" class="fi"></div>
+      <div class="fg"><label>Godzina</label><input type="time" id="zdr-czas" class="fi"></div>
+    </div>
+    <div class="fg"><label>Opis incydentu</label>
+      <textarea id="zdr-opis" class="fi" placeholder="Co się stało? Objawy, okoliczności…"></textarea>
+    </div>
+    <div class="fg"><label>Udzielona pomoc</label>
+      <textarea id="zdr-pomoc" class="fi" style="min-height:60px" placeholder="Co zrobiono? Podano leki, opatrunek, odpoczynek…"></textarea>
+    </div>
+    <div class="fg">
+      <label>Kto był zaangażowany</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
+          <input type="checkbox" id="zdr-pielegniarkaObecna" style="accent-color:var(--amber);width:16px;height:16px"> Pielęgniarka obecna
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
+          <input type="checkbox" id="zdr-pogotowie" style="accent-color:var(--ember);width:16px;height:16px"> 🚑 Pogotowie ratunkowe
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
+          <input type="checkbox" id="zdr-przychodnia" style="accent-color:var(--amber);width:16px;height:16px"> 🏥 Przychodnia / lekarz
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
+          <input type="checkbox" id="zdr-rodzic" style="accent-color:var(--leaf);width:16px;height:16px"> 📞 Kontakt z rodzicem
+        </label>
+      </div>
+    </div>
+    <div class="fg" id="zdr-rodzic-wrap" style="display:none">
+      <label>Notatka z rozmowy z rodzicem</label>
+      <textarea id="zdr-rodzicNotatka" class="fi" style="min-height:60px" placeholder="Z kim rozmawiałeś, co ustalono…"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('m-zdrowie')">Anuluj</button>
+      <button class="btn-save" onclick="saveZdrowie()">Zapisz 🩺</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ZDROWIE – HISTORIA UCZESTNIKA -->
+<div class="overlay" id="m-zdr-historia">
+  <div class="modal" style="max-height:92vh">
+    <div class="mhandle"></div>
+    <div id="zdr-historia-content"></div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-cancel" onclick="closeModal('m-zdr-historia')">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HISTORIA PRZYPOMNIEŃ (komendant) -->
+<div class="overlay" id="m-rem-historia">
+  <div class="modal" style="max-height:92vh">
+    <div class="mhandle"></div>
+    <div class="mtitle">📋 Historia przypomnień</div>
+    <div class="fg"><label>Filtruj po osobie z kadry</label>
+      <select id="hist-kadra" class="fi" onchange="renderRemHistoria()">
+        <option value="">Cała kadra</option>
+      </select>
+    </div>
+    <div id="rem-historia-content" style="overflow-y:auto;max-height:55vh"></div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-cancel" onclick="closeModal('m-rem-historia')">Zamknij</button>
     </div>
   </div>
 </div>
@@ -744,7 +862,7 @@ const CAT_META = {
 
 // ── STATE ──
 let currentUser = null;
-let state = { users:{}, groups:{}, participants:{}, plan:{}, reminders:{}, documents:{}, notifications:{}, dni:{}, aktywnosci:{} };
+let state = { users:{}, groups:{}, participants:{}, plan:{}, reminders:{}, documents:{}, notifications:{}, dni:{}, aktywnosci:{}, zdrowotne:{} };
 let listeners = [];
 let activeDocCat = null;
 let activeGrpFilter = null;
@@ -899,7 +1017,7 @@ async function seedIfEmpty(){
 
 // ── REALTIME LISTENERS ──
 function attachListeners(){
-  const paths = ['users','groups','participants','plan','reminders','documents','notifications','dni','aktywnosci'];
+  const paths = ['users','groups','participants','plan','reminders','documents','notifications','dni','aktywnosci','zdrowotne'];
   paths.forEach(path => {
     const unsub = onValue(ref(db, path), snap => {
       state[path] = snap.val() || {};
@@ -920,7 +1038,7 @@ function onStateChange(path){
   const tab = active?.id?.replace('page-','');
   if(path==='plan'&&tab==='plan') renderPlan();
   if(path==='dni'&&tab==='plan') renderPlan();
-  if(path==='aktywnosci'&&tab==='plan') renderPlan();
+  if(path==='zdrowotne'&&tab==='zdrowie') renderZdrowie();
   if(path==='reminders' && (tab==='rem'||tab==='plan')) { renderRem(); updateBadges(); }
   if(path==='participants' && tab==='uczestnicy') renderParts();
   if(path==='documents' && tab==='docs') renderDocs();
@@ -1005,7 +1123,7 @@ function initApp(){
 
   // plan btns rendered inside renderPlan()
   populateSelects();
-  renderPlan(); renderRem(); renderParts(); renderDocs();
+  renderPlan(); renderRem(); renderParts(); renderDocs(); renderZdrowie();
   if(u.role==='komendant') renderAdmin();
   updateBadges();
   setInterval(checkReminderAlerts, 30000);
@@ -1057,6 +1175,7 @@ window.switchTab = function(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${id}`));
   if(id==='plan') renderPlan();
   if(id==='rem') renderRem();
+  if(id==='zdrowie') renderZdrowie();
   if(id==='uczestnicy') renderParts();
   if(id==='docs') renderDocs();
   if(id==='admin') renderAdmin();
@@ -1571,10 +1690,18 @@ window.deletePlan=async function(id){
   showSync(); await remove(ref(db,`aktywnosci/${id}`)); closeModal('m-plan-detail');
 }
 
-// ── PRZYPOMNIENIA ──
+// ── PRZYPOMNIENIA (z cyklicznymi) ──
+function todayIso(){ return new Date().toISOString().slice(0,10); }
+
+function remDoneToday(r){
+  // For cykliczne: check historia for today
+  if(!r.cykliczne) return r.done;
+  const hist = r.historia||{};
+  return hist[todayIso()]?.done===true;
+}
+
 function renderRem(){
   let rems = Object.entries(state.reminders||{});
-  // filter by role
   if(!can('seeAll')){
     const myParts = Object.entries(state.participants||{})
       .filter(([,p])=>p.group===myGroup()).map(([id])=>id);
@@ -1585,8 +1712,8 @@ function renderRem(){
     }
   }
   rems.sort((a,b)=>a[1].time?.localeCompare(b[1].time));
-  const pending=rems.filter(([,r])=>!r.done);
-  const done=rems.filter(([,r])=>r.done);
+  const pending=rems.filter(([,r])=>!remDoneToday(r));
+  const done=rems.filter(([,r])=>remDoneToday(r));
   const cont=$('rem-list');
   if(!rems.length){
     cont.innerHTML='<div class="empty"><div class="empty-icon">✨</div><div class="empty-text">Brak przypomnień. Wszystko pod kontrolą!</div></div>';
@@ -1594,17 +1721,22 @@ function renderRem(){
   }
   cont.innerHTML='';
   [...pending,...done].forEach(([rid,r])=>{
+    const isDone=remDoneToday(r);
     const pName=partName(r.person);
+    const hist=r.historia||{};
+    const todayEntry=hist[todayIso()];
+    const doneBy=todayEntry?.doneBy?staffName(todayEntry.doneBy):'';
+    const doneAt=todayEntry?.doneAt||'';
     const div=document.createElement('div');
-    div.className=`rem-card${r.priority==='urgent'?' urgent':''}${r.done?' done-r':''}`;
+    div.className=`rem-card${r.priority==='urgent'?' urgent':''}${isDone?' done-r':''}`;
     div.innerHTML=`
       <div class="rem-icon">${r.icon}</div>
       <div class="rem-body">
-        <div class="rem-who">${r.priority==='urgent'?'🔴 PILNE · ':''}${pName}</div>
+        <div class="rem-who">${r.priority==='urgent'?'🔴 PILNE · ':''}${pName}${r.cykliczne?' <span style="font-size:10px;color:var(--ash);border:1px solid var(--border);border-radius:10px;padding:1px 5px;font-family:Cinzel,serif">🔁 codziennie</span>':''}</div>
         <div class="rem-text">${r.text}</div>
-        <div class="rem-time">⏰ ${r.time}</div>
+        <div class="rem-time">⏰ ${r.time}${isDone&&doneBy?` · ✓ ${doneBy} o ${doneAt}`:''}</div>
       </div>
-      <button class="done-btn${r.done?' ok':''}" onclick="toggleRem('${rid}')">${r.done?'↩':'✓'}</button>`;
+      <button class="done-btn${isDone?' ok':''}" onclick="toggleRem('${rid}')">${isDone?'↩':'✓'}</button>`;
     cont.appendChild(div);
   });
 }
@@ -1613,35 +1745,51 @@ window.saveReminder = async function(){
   const text=$('rem-text').value.trim();
   const time=$('rem-time').value;
   if(!text||!time){alert('Podaj treść i godzinę.');return;}
+  const cykliczne=$('rem-cykliczne').checked;
   showSync();
-  await push(ref(db,'reminders'),{
+  const data = {
     person:$('rem-person').value,
-    text,time,
+    text, time,
     icon:$('rem-icon').value,
     priority:$('rem-prio').value,
-    done:false,
+    cykliczne,
+    done: cykliczne ? false : false,
     createdBy:currentUser.id,
     ts:Date.now()
-  });
+  };
+  await push(ref(db,'reminders'), data);
   closeModal('m-rem');
-  addNotif('⏰ Przypomnienie',text);
-  // reset form
-  $('rem-text').value=''; $('rem-person').value='ogólne';
+  addNotif('⏰ Przypomnienie', text);
+  $('rem-text').value=''; $('rem-person').value='ogólne'; $('rem-cykliczne').checked=false;
 }
 
 window.toggleRem = async function(rid){
   const r=state.reminders[rid]; if(!r) return;
   showSync();
-  await update(ref(db,`reminders/${rid}`),{done:!r.done});
+  if(r.cykliczne){
+    const iso=todayIso();
+    const now=new Date();
+    const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const isDone=remDoneToday(r);
+    await update(ref(db,`reminders/${rid}/historia/${iso}`),{
+      done: !isDone,
+      doneBy: isDone?null:currentUser.id,
+      doneAt: isDone?null:t
+    });
+  } else {
+    await update(ref(db,`reminders/${rid}`),{done:!r.done});
+  }
 }
 
 function checkReminderAlerts(){
   const cur=nowMins();
+  const iso=todayIso();
   Object.entries(state.reminders||{}).forEach(([rid,r])=>{
-    if(r.done||remAlerted.has(rid)) return;
+    const isDone=remDoneToday(r);
+    if(isDone||remAlerted.has(rid+iso)) return;
     const rm=timeMins(r.time);
     if(Math.abs(rm-cur)<=2){
-      remAlerted.add(rid);
+      remAlerted.add(rid+iso);
       const pn=r.person!=='ogólne'?partName(r.person):'';
       addNotif(`${r.icon} Przypomnienie${pn?' – '+pn:''}`,r.text);
       if('Notification' in window&&Notification.permission==='granted'){
@@ -1649,6 +1797,248 @@ function checkReminderAlerts(){
       }
     }
   });
+}
+
+// ── HISTORIA PRZYPOMNIEŃ ──
+window.openRemHistoria=function(){
+  // populate kadra filter
+  const sel=$('hist-kadra');
+  sel.innerHTML='<option value="">Cała kadra</option>';
+  Object.entries(state.users||{}).forEach(([uid,u])=>{
+    sel.innerHTML+=`<option value="${uid}">${u.name}${u.nick?' „'+u.nick+'"':''}</option>`;
+  });
+  renderRemHistoria();
+  openModal('m-rem-historia');
+}
+
+window.renderRemHistoria=function(){
+  const filterUid=$('hist-kadra').value;
+  const days=campDays();
+  const rems=Object.entries(state.reminders||{}).filter(([,r])=>r.cykliczne);
+  const cont=$('rem-historia-content');
+  if(!rems.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Brak cyklicznych przypomnień.</div></div>';
+    return;
+  }
+  const todayStr=todayIso();
+  // Show last 14 days max
+  const shownDays=days.filter(d=>d<=todayStr).slice(-14);
+
+  let html=`<div style="overflow-x:auto"><table class="hist-table"><thead><tr>
+    <th style="min-width:140px">Przypomnienie</th>
+    ${shownDays.map(d=>{
+      const dt=new Date(d+'T12:00:00');
+      return `<th>${dt.toLocaleDateString('pl-PL',{day:'numeric',month:'numeric'})}</th>`;
+    }).join('')}
+  </tr></thead><tbody>`;
+
+  rems.forEach(([rid,r])=>{
+    const pName=partName(r.person);
+    const hist=r.historia||{};
+    // filter by kadra if set
+    if(filterUid){
+      const anyByUser=Object.values(hist).some(h=>h.doneBy===filterUid);
+      if(!anyByUser && r.createdBy!==filterUid) return;
+    }
+    html+=`<tr>
+      <td>
+        <div style="font-size:12px;color:var(--parchment)">${r.icon} ${r.text}</div>
+        <div style="font-size:10px;color:var(--ash)">${pName}</div>
+      </td>
+      ${shownDays.map(d=>{
+        const entry=hist[d];
+        if(!entry) return `<td class="hist-skip" title="brak danych">–</td>`;
+        if(entry.done){
+          const who=entry.doneBy?staffName(entry.doneBy):'';
+          const at=entry.doneAt||'';
+          return `<td class="hist-ok" title="${who} o ${at}">✅</td>`;
+        }
+        return `<td class="hist-no" title="nie wykonano">❌</td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  html+=`</tbody></table></div>
+    <div style="font-size:11px;color:var(--ash);margin-top:10px">✅ wykonano · ❌ nie wykonano · – brak wpisu</div>`;
+  cont.innerHTML=html;
+}
+
+// ── MODUŁ ZDROWIA ──
+window.openAddZdrowie=function(editId=null){
+  $('zdr-edit-id').value=editId||'';
+  $('m-zdr-title').textContent=editId?'✏️ Edytuj incydent':'🩺 Nowy incydent zdrowotny';
+
+  // populate uczestnik select
+  const sel=$('zdr-uczestnik');
+  sel.innerHTML='<option value="">— wybierz uczestnika —</option>';
+  let parts=Object.entries(state.participants||{});
+  if(!can('seeAll')) parts=parts.filter(([,p])=>p.group===myGroup());
+  parts.forEach(([pid,p])=>{
+    const grp=state.groups[p.group];
+    sel.innerHTML+=`<option value="${pid}">${p.first} ${p.last}${grp?' · '+grp.icon+grp.name:''}</option>`;
+  });
+
+  if(editId){
+    const z=state.zdrowotne[editId];
+    sel.value=z.uczestnikId||'';
+    $('zdr-data').value=z.data||'';
+    $('zdr-czas').value=z.czas||'';
+    $('zdr-opis').value=z.opis||'';
+    $('zdr-pomoc').value=z.pomocOpisana||'';
+    $('zdr-pielegniarkaObecna').checked=z.pielegniarkaObecna||false;
+    $('zdr-pogotowie').checked=z.pogotowie||false;
+    $('zdr-przychodnia').checked=z.przychodnia||false;
+    $('zdr-rodzic').checked=z.kontaktRodzic||false;
+    $('zdr-rodzicNotatka').value=z.notatkiRodzic||'';
+  } else {
+    sel.value='';
+    const n=new Date();
+    $('zdr-data').value=n.toISOString().slice(0,10);
+    $('zdr-czas').value=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+    $('zdr-opis').value=''; $('zdr-pomoc').value='';
+    $('zdr-pielegniarkaObecna').checked=false;
+    $('zdr-pogotowie').checked=false;
+    $('zdr-przychodnia').checked=false;
+    $('zdr-rodzic').checked=false;
+    $('zdr-rodzicNotatka').value='';
+  }
+  zdrowieRodzicToggle();
+  openModal('m-zdrowie');
+}
+
+// show/hide rodzic notatka
+document.addEventListener('change', e=>{
+  if(e.target.id==='zdr-rodzic') zdrowieRodzicToggle();
+});
+function zdrowieRodzicToggle(){
+  const v=$('zdr-rodzic')?.checked;
+  const w=$('zdr-rodzic-wrap');
+  if(w) w.style.display=v?'block':'none';
+}
+
+window.saveZdrowie=async function(){
+  const uid=$('zdr-uczestnik').value;
+  const opis=$('zdr-opis').value.trim();
+  if(!uid){alert('Wybierz uczestnika.');return;}
+  if(!opis){alert('Opisz incydent.');return;}
+  showSync();
+  const editId=$('zdr-edit-id').value;
+  const data={
+    uczestnikId:uid,
+    data:$('zdr-data').value,
+    czas:$('zdr-czas').value,
+    opis,
+    pomocOpisana:$('zdr-pomoc').value.trim(),
+    pielegniarkaObecna:$('zdr-pielegniarkaObecna').checked,
+    pogotowie:$('zdr-pogotowie').checked,
+    przychodnia:$('zdr-przychodnia').checked,
+    kontaktRodzic:$('zdr-rodzic').checked,
+    notatkiRodzic:$('zdr-rodzicNotatka').value.trim(),
+    wpisalId:currentUser.id,
+    ts:Date.now()
+  };
+  if(editId) await update(ref(db,`zdrowotne/${editId}`),data);
+  else await push(ref(db,'zdrowotne'),data);
+  closeModal('m-zdrowie');
+  addNotif('🩺 Zdrowie',`Incydent: ${opis.substring(0,40)}`);
+}
+
+function renderZdrowie(){
+  let parts=Object.entries(state.participants||{});
+  if(!can('seeAll')) parts=parts.filter(([,p])=>p.group===myGroup());
+
+  // filter bar
+  const fbar=$('zdr-filter');
+  fbar.innerHTML=`<button class="cf-btn active" onclick="setZdrFilter(null)">Wszyscy</button>
+    <button class="cf-btn" onclick="setZdrFilter('incidents')" style="${zdrFilter==='incidents'?'background:rgba(200,168,75,.12);border-color:var(--gold);color:var(--gold)':''}">⚠️ Z incydentami</button>
+    <button class="cf-btn" onclick="setZdrFilter('health')" style="${zdrFilter==='health'?'background:rgba(201,79,12,.15);border-color:var(--ember);color:#f4a060':''}">🩺 Uwagi zdrowotne</button>`;
+
+  let shown=parts;
+  if(zdrFilter==='incidents') shown=parts.filter(([pid])=>Object.values(state.zdrowotne||{}).some(z=>z.uczestnikId===pid));
+  if(zdrFilter==='health') shown=parts.filter(([,p])=>p.health);
+
+  const cont=$('zdr-list');
+  if(!shown.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">🌿</div><div class="empty-text">Brak uczestników do wyświetlenia.</div></div>';
+    return;
+  }
+
+  cont.innerHTML='';
+  shown.forEach(([pid,p])=>{
+    const incidents=Object.entries(state.zdrowotne||{}).filter(([,z])=>z.uczestnikId===pid);
+    const grp=state.groups[p.group];
+    const hasIncidents=incidents.length>0;
+    const div=document.createElement('div');
+    div.className=`zdr-part-card${hasIncidents?' has-incidents':''}`;
+    div.onclick=()=>openZdrHistoria(pid);
+    div.innerHTML=`
+      <div class="${hasIncidents?'zdr-count':'zdr-count ok'}">${hasIncidents?incidents.length:'✓'}</div>
+      <div style="flex:1">
+        <div style="font-size:15px;color:var(--parchment);font-weight:600">${p.first} ${p.last}</div>
+        <div style="font-size:12px;color:var(--ash);margin-top:2px">${grp?grp.icon+' '+grp.name:''} · ${p.age} lat</div>
+        ${p.health?`<div style="font-size:12px;color:#f4a060;margin-top:3px">🩺 ${p.health}</div>`:''}
+        ${hasIncidents?`<div style="font-size:12px;color:var(--smoke);margin-top:2px">Ostatni: ${incidents.sort((a,b)=>b[1].ts-a[1].ts)[0][1].data}</div>`:''}
+      </div>
+      <div style="font-size:20px">›</div>`;
+    cont.appendChild(div);
+  });
+}
+
+let zdrFilter=null;
+window.setZdrFilter=function(f){zdrFilter=f;renderZdrowie();}
+
+window.openZdrHistoria=function(pid){
+  const p=state.participants[pid]; if(!p) return;
+  const grp=state.groups[p.group];
+  const incidents=Object.entries(state.zdrowotne||{})
+    .filter(([,z])=>z.uczestnikId===pid)
+    .sort((a,b)=>b[1].ts-a[1].ts);
+
+  let html=`
+    <div class="mtitle">🩺 ${p.first} ${p.last}</div>
+    <div style="font-size:13px;color:var(--ash);margin-bottom:14px">${grp?grp.icon+' '+grp.name:''} · ${p.age} lat${p.health?' · ⚠️ '+p.health:''}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">Incydenty (${incidents.length})</div>
+      <button class="btn-sm" onclick="closeModal('m-zdr-historia');openAddZdrowie();document.getElementById('zdr-uczestnik').value='${pid}'">+ Nowy</button>
+    </div>`;
+
+  if(!incidents.length){
+    html+=`<div class="empty" style="padding:20px"><div class="empty-icon">✅</div><div class="empty-text">Brak incydentów zdrowotnych.</div></div>`;
+  } else {
+    incidents.forEach(([zid,z])=>{
+      const wpisal=z.wpisalId?staffName(z.wpisalId):'';
+      const badges=[];
+      if(z.pielegniarkaObecna) badges.push(['green','🏥 Pielęgniarka']);
+      if(z.pogotowie) badges.push(['red','🚑 Pogotowie']);
+      if(z.przychodnia) badges.push(['red','🏥 Przychodnia']);
+      if(z.kontaktRodzic) badges.push(['gold','📞 Rodzic']);
+      html+=`<div class="zdr-incident${badges.some(b=>b[0]==='red')?' ':' ok'}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--amber)">${z.data} · ${z.czas||''}</div>
+          ${can('editParts')||z.wpisalId===currentUser.id?`<div style="display:flex;gap:5px">
+            <button class="done-btn" onclick="closeModal('m-zdr-historia');openAddZdrowie('${zid}')">✏️</button>
+            <button class="done-btn" onclick="deleteZdrowie('${zid}','${pid}')">🗑️</button>
+          </div>`:''}
+        </div>
+        <div style="font-size:14px;color:var(--parchment);margin:5px 0">${z.opis}</div>
+        ${z.pomocOpisana?`<div style="font-size:13px;color:var(--smoke);font-style:italic">💊 ${z.pomocOpisana}</div>`:''}
+        ${z.notatkiRodzic?`<div style="font-size:13px;color:var(--leaf);margin-top:4px">📞 ${z.notatkiRodzic}</div>`:''}
+        <div class="zdr-badges">
+          ${badges.map(([c,l])=>`<span class="zdr-badge zdr-badge-${c}">${l}</span>`).join('')}
+        </div>
+        <div style="font-size:10px;color:var(--ash);margin-top:6px">Wpisał: ${wpisal}</div>
+      </div>`;
+    });
+  }
+  $('zdr-historia-content').innerHTML=html;
+  openModal('m-zdr-historia');
+}
+
+window.deleteZdrowie=async function(zid,pid){
+  if(!confirm('Usunąć ten incydent?')) return;
+  showSync();
+  await remove(ref(db,`zdrowotne/${zid}`));
+  openZdrHistoria(pid);
 }
 
 // ── UCZESTNICY ──
@@ -1949,6 +2339,13 @@ function renderAdmin(){
   bCard.innerHTML=`<div class="acard-title">📢 Komunikat do kadry</div>
     <button class="btn-save" style="width:100%;padding:11px;border:none;border-radius:9px;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;background:linear-gradient(135deg,var(--amber),#8a4a0a);color:var(--cream)" onclick="openModal('m-broadcast')">📢 Napisz komunikat</button>`;
   grid.appendChild(bCard);
+
+  // HISTORIA PRZYPOMNIEŃ
+  const hCard=document.createElement('div'); hCard.className='acard';
+  hCard.innerHTML=`<div class="acard-title">📋 Rozliczalność kadry</div>
+    <div style="font-size:13px;color:var(--smoke);margin-bottom:10px">Historia odhaczania cyklicznych przypomnień przez kadrę.</div>
+    <button class="btn-save" style="width:100%;padding:11px;border:none;border-radius:9px;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;background:linear-gradient(135deg,var(--moss),#2a4020);color:var(--cream)" onclick="openRemHistoria()">📋 Zobacz historię</button>`;
+  grid.appendChild(hCard);
 
   // PROFIL
   const pCard=document.createElement('div'); pCard.className='acard';
