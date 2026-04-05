@@ -582,19 +582,23 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
     </div>
     <div class="fg">
       <label>Kto był zaangażowany (można zaznaczyć kilka)</label>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
-          <input type="checkbox" id="zdr-pielegniarkaObecna" style="accent-color:var(--amber);width:18px;height:18px;flex-shrink:0"> 🏥 Pielęgniarka
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
-          <input type="checkbox" id="zdr-pogotowie" style="accent-color:var(--ember);width:18px;height:18px;flex-shrink:0"> 🚑 Pogotowie ratunkowe
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
-          <input type="checkbox" id="zdr-przychodnia" style="accent-color:var(--amber);width:18px;height:18px;flex-shrink:0"> 🏨 Przychodnia / lekarz
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
-          <input type="checkbox" id="zdr-rodzic" style="accent-color:var(--leaf);width:18px;height:18px;flex-shrink:0"> 📞 Kontakt z rodzicem
-        </label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px" id="zdr-zaangazowani">
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer" onclick="toggleChk('zdr-pielegniarkaObecna',this)">
+          <input type="checkbox" id="zdr-pielegniarkaObecna" style="accent-color:var(--amber);width:18px;height:18px;flex-shrink:0;pointer-events:none">
+          <span style="font-size:14px;color:var(--parchment)">🏥 Pielęgniarka</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer" onclick="toggleChk('zdr-pogotowie',this)">
+          <input type="checkbox" id="zdr-pogotowie" style="accent-color:var(--ember);width:18px;height:18px;flex-shrink:0;pointer-events:none">
+          <span style="font-size:14px;color:var(--parchment)">🚑 Pogotowie ratunkowe</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer" onclick="toggleChk('zdr-przychodnia',this)">
+          <input type="checkbox" id="zdr-przychodnia" style="accent-color:var(--amber);width:18px;height:18px;flex-shrink:0;pointer-events:none">
+          <span style="font-size:14px;color:var(--parchment)">🏨 Przychodnia / lekarz</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer" onclick="toggleChk('zdr-rodzic',this)">
+          <input type="checkbox" id="zdr-rodzic" style="accent-color:var(--leaf);width:18px;height:18px;flex-shrink:0;pointer-events:none">
+          <span style="font-size:14px;color:var(--parchment)">📞 Kontakt z rodzicem</span>
+        </div>
       </div>
     </div>
     <div class="fg" id="zdr-rodzic-wrap" style="display:none">
@@ -1890,6 +1894,7 @@ window.openAddZdrowie=function(editId=null){
     $('zdr-przychodnia').checked=z.przychodnia||false;
     $('zdr-rodzic').checked=z.kontaktRodzic||false;
     $('zdr-rodzicNotatka').value=z.notatkiRodzic||'';
+    ['zdr-pielegniarkaObecna','zdr-pogotowie','zdr-przychodnia','zdr-rodzic'].forEach(syncChkVisual);
   } else {
     sel.value='';
     const n=new Date();
@@ -1901,15 +1906,33 @@ window.openAddZdrowie=function(editId=null){
     $('zdr-przychodnia').checked=false;
     $('zdr-rodzic').checked=false;
     $('zdr-rodzicNotatka').value='';
+    ['zdr-pielegniarkaObecna','zdr-pogotowie','zdr-przychodnia','zdr-rodzic'].forEach(syncChkVisual);
   }
   zdrowieRodzicToggle();
   openModal('m-zdrowie');
 }
 
-// show/hide rodzic notatka
+// toggle checkbox + visual state
+window.toggleChk=function(id, row){
+  const chk=$(id);
+  chk.checked=!chk.checked;
+  row.style.borderColor=chk.checked?'var(--gold)':'var(--border)';
+  row.style.background=chk.checked?'rgba(200,168,75,.1)':'rgba(22,37,22,.6)';
+  if(id==='zdr-rodzic') zdrowieRodzicToggle();
+}
+
+// sync visual state of checkboxes (when editing existing record)
+function syncChkVisual(id){
+  const chk=$(id); if(!chk) return;
+  const row=chk.parentElement;
+  row.style.borderColor=chk.checked?'var(--gold)':'var(--border)';
+  row.style.background=chk.checked?'rgba(200,168,75,.1)':'rgba(22,37,22,.6)';
+}
+
 document.addEventListener('change', e=>{
   if(e.target.id==='zdr-rodzic') zdrowieRodzicToggle();
 });
+
 function zdrowieRodzicToggle(){
   const v=$('zdr-rodzic')?.checked;
   const w=$('zdr-rodzic-wrap');
