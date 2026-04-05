@@ -581,19 +581,19 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
       <textarea id="zdr-pomoc" class="fi" style="min-height:60px" placeholder="Co zrobiono? Podano leki, opatrunek, odpoczynek…"></textarea>
     </div>
     <div class="fg">
-      <label>Kto był zaangażowany</label>
+      <label>Kto był zaangażowany (można zaznaczyć kilka)</label>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
-          <input type="checkbox" id="zdr-pielegniarkaObecna" style="accent-color:var(--amber);width:16px;height:16px"> Pielęgniarka obecna
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
+          <input type="checkbox" id="zdr-pielegniarkaObecna" style="accent-color:var(--amber);width:18px;height:18px;flex-shrink:0"> 🏥 Pielęgniarka
         </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
-          <input type="checkbox" id="zdr-pogotowie" style="accent-color:var(--ember);width:16px;height:16px"> 🚑 Pogotowie ratunkowe
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
+          <input type="checkbox" id="zdr-pogotowie" style="accent-color:var(--ember);width:18px;height:18px;flex-shrink:0"> 🚑 Pogotowie ratunkowe
         </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
-          <input type="checkbox" id="zdr-przychodnia" style="accent-color:var(--amber);width:16px;height:16px"> 🏥 Przychodnia / lekarz
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
+          <input type="checkbox" id="zdr-przychodnia" style="accent-color:var(--amber);width:18px;height:18px;flex-shrink:0"> 🏨 Przychodnia / lekarz
         </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer">
-          <input type="checkbox" id="zdr-rodzic" style="accent-color:var(--leaf);width:16px;height:16px"> 📞 Kontakt z rodzicem
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--parchment);cursor:pointer;background:rgba(22,37,22,.6);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
+          <input type="checkbox" id="zdr-rodzic" style="accent-color:var(--leaf);width:18px;height:18px;flex-shrink:0"> 📞 Kontakt z rodzicem
         </label>
       </div>
     </div>
@@ -2010,7 +2010,7 @@ window.openZdrHistoria=function(pid){
       const badges=[];
       if(z.pielegniarkaObecna) badges.push(['green','🏥 Pielęgniarka']);
       if(z.pogotowie) badges.push(['red','🚑 Pogotowie']);
-      if(z.przychodnia) badges.push(['red','🏥 Przychodnia']);
+      if(z.przychodnia) badges.push(['red','🏨 Przychodnia']);
       if(z.kontaktRodzic) badges.push(['gold','📞 Rodzic']);
       html+=`<div class="zdr-incident${badges.some(b=>b[0]==='red')?' ':' ok'}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
